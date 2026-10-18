@@ -1,14 +1,12 @@
 /* The Europe map (?map=eu): the EU's members and their neighbors that fill out the map (Switzerland, Norway, the
    Western Balkans, Ukraine, Belarus, Moldova and the UK). Malta and Cyprus are left out. Two pairs join across the
    water, drawn as little bridges: Sweden-Denmark (the Øresund Bridge) and the UK-France (the Channel Tunnel).
-   See scripts/build-map.mjs. */
-import data from '../data/eu.json';
+   Map data: source.mjs -> map.json. */
 
 // prettier-ignore
 export default {
-  key: 'eu',
+  order: 2,
   name: 'Europe',                     // on the map switch and in the tab title
-  data,
   unit: 'country', units: 'countries',
   goal: 'Europe',
   tagline: 'Drop European countries into the box. Neighbors stick together. Build the map of Europe.',

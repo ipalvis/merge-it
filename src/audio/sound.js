@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../config.js';
-import { MAP } from '../map/level.js';
+import { MAP } from '../levels/index.js';
 
 export const Sound = (() => {
   let ctx = null,

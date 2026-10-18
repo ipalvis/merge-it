@@ -26,12 +26,15 @@ src/
   styles.css          all styles, light and dark themes, self-hosted font
   config.js           CFG tunables, box size, test mode flag
   state.js            G: shared mutable game state (score, round, deck, pieces, flow state)
-  data/states.json    generated map data (outlines, convex physics pieces, neighbors)
-  data/eu.json        the same for the Europe level
-  map/level.js        picks the map: the URL's ?map=, else the last one played, else the U.S.
-  map/us.js, eu.js    per-level settings: colors, pre-joined clusters, bonus divisions and regions, wording
+  levels/
+    index.js          finds every level folder, picks MAP (the URL's ?map=, else the last one played, else the
+                      first), and loads only that level's map data
+    us/, eu/          one folder per level:
+      level.js        settings and wording: colors, pre-joined clusters, bonus divisions and regions, song, box width
+      source.mjs      build recipe for map.json: boundary data, which regions, codes, islands, sea links
+      map.json        generated map data (outlines, convex physics pieces, neighbors); don't hand-edit
   map/geometry.js     scales map data, builds STATES, pieces, clusters, colors, stick-to rules
-  map/labels.js       fitted country codes (largest box that fits inside each shape)
+  map/labels.js       fitted codes (sized to fit inside each shape, centred where they fit)
   physics/world.js    Matter.js world, building piece bodies, merge detection and snapping
   game/
     game.js           rounds, scoring, win popup, Endless mode, game over
@@ -42,14 +45,24 @@ src/
     bank.js           Bank a piece
     giveUp.js         two-tap Give up
     tutorial.js       first-run guided tutorial (dim, spotlight, scripted steps)
-    preview.js        Europe level: show or hide the finished-map panel
+    preview.js        show or hide the finished-map panel
   input/input.js      pointer and keyboard input
   render/render.js    canvas drawing: box, pieces, danger line, aim preview, rotation ring
   ui/                 canvas sizing, theme, HUD, toasts, confetti, DOM helper
   audio/sound.js      synthesized music sequencer and sound effects, mute
 scripts/
-  build-map.mjs       offline map-data pipeline (us-atlas -> states.json, world-atlas -> eu.json)
+  build-map.mjs       offline map-data pipeline: runs each level's source.mjs and writes its map.json
+  check-levels.mjs    checks every level's settings against its map (runs as part of npm run build)
 ```
+
+## Adding a level
+
+1. Make a folder in `src/levels/` named for the level's key (what `?map=` will use), e.g. `src/levels/jp/`.
+2. Write `source.mjs`, the recipe for its map data: which TopoJSON file to use, which regions to keep and the code each one shows, plus optionally a projection, island rules and links across water. `scripts/build-map.mjs` lists every option; `us/` and `eu/` are worked examples. Any TopoJSON with a region per shape works; the build script reads it from an npm package (e.g. `world-atlas`, `us-atlas`).
+3. Run `npm run build:map -- jp` to write `map.json`.
+4. Write `level.js` with its settings and wording: copy `eu/level.js` and change it, including `order` (its place on the map switch).
+5. Run `npm run check:levels`. It reports anything that would break play: regions that can never join the rest (add a link in `source.mjs`), regions missing from the color groups, clusters that don't touch, bonus groups or test ids naming regions that aren't on the map, and so on.
+6. Play it with `npm run dev` and `?map=jp` (`&test=1` deals only its test pair). The map switch picks it up on its own.
 
 **How state is shared:** anything that more than one module reads and changes lives on the `G` object in `src/state.js` (for example `G.score`, `G.state`, `G.groups`). Values only one module uses stay private to that module. Constants live in `src/config.js`.
 

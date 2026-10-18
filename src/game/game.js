@@ -2,7 +2,7 @@ import { Sound } from '../audio/sound.js';
 import { CFG, STORAGE_KEYS } from '../config.js';
 import { endBlend } from './blend.js';
 import { DECK, GOAL_IDS } from '../map/geometry.js';
-import { MAP } from '../map/level.js';
+import { MAP } from '../levels/index.js';
 import { setupWorld } from '../physics/world.js';
 import { G } from '../state.js';
 import { launchConfetti, stopConfetti } from '../ui/confetti.js';

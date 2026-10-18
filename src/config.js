@@ -1,4 +1,4 @@
-import { LEVEL_KEY, MAP } from './map/level.js';
+import { LEVEL_KEY, MAP } from './levels/index.js';
 
 /* Test mode: open the game with ?test=1 to deal only the level's two test states; connecting them completes the round.
    Useful for checking the win popup and Endless mode without assembling the whole map.
@@ -15,7 +15,7 @@ export const STORAGE_KEYS = {
   muted: 'merge-it-muted',
   tutorialDone: 'merge-it-tutorial-done',
   mapPreview: 'merge-it-map-preview', // '0' once the player hides the finished-map preview
-  level: LEVEL_KEY, // the last map played (read in map/level.js, which loads before this file)
+  level: LEVEL_KEY, // the last map played (read in levels/index.js, which loads before this file)
 };
 try {
   for (const key of ['best', 'test-best', 'eu-best', 'eu-test-best', 'muted', 'tutorial-done', 'map-preview']) {

@@ -2,7 +2,7 @@ import Matter from 'matter-js';
 import { Sound } from '../audio/sound.js';
 import { clampAim } from './aim.js';
 import { STATES, makePiece } from '../map/geometry.js';
-import { MAP } from '../map/level.js';
+import { MAP } from '../levels/index.js';
 import { ownerOf, removeGroup } from '../physics/world.js';
 import { G, tutBlocks } from '../state.js';
 import { $ } from '../ui/dom.js';

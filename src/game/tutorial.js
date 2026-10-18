@@ -19,7 +19,7 @@ import { clampAim } from './aim.js';
 import { endBlend } from './blend.js';
 import { newGame } from './game.js';
 import { STATES, makePiece } from '../map/geometry.js';
-import { MAP } from '../map/level.js';
+import { MAP } from '../levels/index.js';
 import {
   addGroup,
   buildGroup,

@@ -2,15 +2,16 @@
   "name": "merge-it",
   "private": true,
   "version": "1.0.0",
-  "description": "Drop U.S. states into a box; neighbors stick together. Assemble the Lower 48.",
+  "description": "Drop the pieces of a map into a box; neighbors stick together. Assemble the whole map.",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/check-levels.mjs && vite build",
     "build:single": "vite build --mode single",
     "build:single-test": "vite build --mode single-test",
     "preview": "vite preview",
     "build:map": "node scripts/build-map.mjs",
+    "check:levels": "node scripts/check-levels.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

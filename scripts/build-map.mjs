@@ -1,114 +1,33 @@
 /*
- * Regenerates the map data files in src/data/ from public boundary data.
- *   us -> states.json  U.S. Census Bureau boundaries (via us-atlas), already Albers-projected
- *   eu -> eu.json      Natural Earth 1:50m countries (via world-atlas), projected here with the EU's own
- *                      Lambert azimuthal equal-area (centre 10°E 52°N, as in ETRS89-LAEA)
+ * Regenerates each level's map.json (src/levels/<key>/map.json) from public boundary data, following the recipe in
+ * the level's source.mjs, which exports:
+ *   topo, object     - a TopoJSON file (from an npm package, e.g. us-atlas or world-atlas) and the object in it
+ *   pick(geometry)   - { id, name? } for each region to keep (id = the code on the piece), or null to skip it
+ *   keepIsland       - islands smaller than this share of a region's main shape are dropped
+ *   keepIslandFor    - per-region exceptions to keepIsland (optional)
+ *   region([lon,lat])- keep only rings that start inside this area, e.g. to drop overseas territories (optional)
+ *   project([lon,lat]) -> [x, y] in map px, y down (optional; for unprojected data such as world-atlas)
+ *   prepare(topo, tc)- fix up the boundary data first (optional; tc = topojson-client)
+ *   links            - [[a, b], ...] neighbors across water (optional)
  *
- * For each region (state or country) it writes:
+ * For each region it writes:
  *   outline   - polygon(s) for drawing, lightly simplified
  *   convex    - the same shape, simplified more and split into convex pieces (Matter.js bodies must be convex)
- *   neighbors - regions that share a border, from TopoJSON arcs, plus any links listed below
+ *   neighbors - regions that share a border, from TopoJSON arcs, plus any links
  * and, for links across water, the closest points of the two shores (drawn as a sea crossing in the game).
  * Coordinates are shifted so the map starts at (0, 0).
  *
- * Run with `npm run build:map` (both maps) or `node scripts/build-map.mjs eu`.
+ * Run with `npm run build:map` (every level) or `npm run build:map -- eu`, then `npm run check:levels`.
  * Output is deterministic for the pinned package versions.
  */
 import { createRequire } from 'module';
-import { writeFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 const require = createRequire(import.meta.url);
 const tc = require('topojson-client');
 const decomp = require('poly-decomp');
 const simplify = require('simplify-js');
 
-// FIPS code -> postal abbreviation, Lower 48 only
-// prettier-ignore
-const US_ABBR = { '01':'AL','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT','10':'DE','12':'FL','13':'GA','16':'ID','17':'IL','18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD','25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE','32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND','39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD','47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV','55':'WI','56':'WY' };
-
-/* Natural Earth name -> [code shown on the piece, display name].
-   The EU's members plus their neighbors that fill out the map: Switzerland, Norway, the Western Balkans, Ukraine,
-   Belarus, Moldova and the UK. Malta and Cyprus are left out (islands far from any neighbor); microstates are skipped. */
-// prettier-ignore
-const EU_COUNTRIES = {
-  'Austria':['AT','Austria'], 'Belgium':['BE','Belgium'], 'Bulgaria':['BG','Bulgaria'], 'Croatia':['HR','Croatia'],
-  'Czechia':['CZ','Czechia'], 'Denmark':['DK','Denmark'], 'Estonia':['EE','Estonia'], 'Finland':['FI','Finland'],
-  'France':['FR','France'], 'Germany':['DE','Germany'], 'Greece':['GR','Greece'], 'Hungary':['HU','Hungary'],
-  'Italy':['IT','Italy'], 'Latvia':['LV','Latvia'], 'Lithuania':['LT','Lithuania'], 'Luxembourg':['LU','Luxembourg'],
-  'Netherlands':['NL','Netherlands'], 'Poland':['PL','Poland'], 'Portugal':['PT','Portugal'], 'Romania':['RO','Romania'],
-  'Slovakia':['SK','Slovakia'], 'Slovenia':['SI','Slovenia'], 'Spain':['ES','Spain'], 'Sweden':['SE','Sweden'],
-  // gap fillers (not EU members)
-  'Switzerland':['CH','Switzerland'], 'Norway':['NO','Norway'], 'Serbia':['RS','Serbia'],
-  'Bosnia and Herz.':['BA','Bosnia and Herzegovina'], 'Montenegro':['ME','Montenegro'], 'Kosovo':['XK','Kosovo'],
-  'Macedonia':['MK','North Macedonia'], 'Albania':['AL','Albania'],
-  'Ukraine':['UA','Ukraine'], 'Belarus':['BY','Belarus'], 'Moldova':['MD','Moldova'],
-  'United Kingdom':['UK','United Kingdom'], 'Ireland':['IE','Ireland'],
-};
-/* Natural Earth draws Crimea as part of Russia (where it's de facto controlled). The map shows internationally
-   recognised borders, as the EU does, so its polygon moves to Ukraine and is merged in. */
-function crimeaToUkraine(topo) {
-  const geoms = topo.objects.countries.geometries,
-    ru = geoms.find(g => g.properties.name === 'Russia'),
-    ua = geoms.find(g => g.properties.name === 'Ukraine');
-  const centre = arcs => {
-    const ring = tc.feature(topo, { type: 'Polygon', arcs }).geometry.coordinates[0],
-      xs = ring.map(p => p[0]),
-      ys = ring.map(p => p[1]);
-    return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2];
-  };
-  const i = ru.arcs.findIndex(arcs => {
-    const [lon, lat] = centre(arcs);
-    return lon > 32 && lon < 37 && lat > 44 && lat < 46.5;
-  });
-  if (i < 0) throw new Error('Crimea polygon not found');
-  ua.arcs.push(...ru.arcs.splice(i, 1));
-  ua.mergeSelf = true; // dissolve the border between the mainland and Crimea
-}
-
-/* Lambert azimuthal equal-area, spherical. Scale 1000 puts the map at roughly the same pixel size as the US data,
-   so the same simplification tolerances work. y is flipped so north is up on screen. */
-function laea([lon, lat]) {
-  const r = Math.PI / 180,
-    l = (lon - 10) * r,
-    p = lat * r,
-    p0 = 52 * r;
-  const k = Math.sqrt(2 / (1 + Math.sin(p0) * Math.sin(p) + Math.cos(p0) * Math.cos(p) * Math.cos(l)));
-  return [
-    1000 * k * Math.cos(p) * Math.sin(l),
-    -1000 * k * (Math.cos(p0) * Math.sin(p) - Math.sin(p0) * Math.cos(p) * Math.cos(l)),
-  ];
-}
-
-const MAPS = {
-  us: {
-    topo: 'us-atlas/states-albers-10m.json',
-    object: 'states',
-    out: 'states.json',
-    pick: g => (US_ABBR[g.id] ? { id: US_ABBR[g.id] } : null),
-    keepIsland: 0.12, // islands smaller than this share of the main shape are dropped
-  },
-  eu: {
-    topo: 'world-atlas/countries-50m.json',
-    object: 'countries',
-    out: 'eu.json',
-    pick: g =>
-      EU_COUNTRIES[g.properties.name]
-        ? { id: EU_COUNTRIES[g.properties.name][0], name: EU_COUNTRIES[g.properties.name][1] }
-        : null,
-    prepare: crimeaToUkraine,
-    // Keeps Sicily, Sardinia and Zealand; drops Crete, Corsica and the small Baltic and Adriatic islands
-    keepIsland: 0.08,
-    keepIslandFor: { UK: 0.05 }, // keeps Northern Ireland, the UK's land border with Ireland
-    // Only mainland Europe: drops overseas parts (French Guiana, the Canaries, Svalbard, ...) before projecting
-    region: ([lon, lat]) => lon > -12 && lon < 41 && lat > 34 && lat < 72,
-    project: laea,
-    // Neighbors across water. Sweden reaches the mainland only by the Øresund Bridge (without it Norway, Sweden and
-    // Finland could never join the rest), and Great Britain by the Channel Tunnel.
-    links: [
-      ['SE', 'DK'],
-      ['UK', 'FR'],
-    ],
-  },
-};
+const LEVELS = new URL('../src/levels/', import.meta.url);
 
 const area = r => {
   let a = 0;
@@ -120,10 +39,11 @@ const area = r => {
   return a / 2;
 };
 
-function build(key) {
-  const M = MAPS[key];
-  const topo = require(M.topo);
-  M.prepare?.(topo);
+async function build(key) {
+  const M = (await import(new URL(`${key}/source.mjs`, LEVELS))).default;
+  // a fresh copy each time: prepare() may edit it, and other levels can use the same file
+  const topo = JSON.parse(readFileSync(require.resolve(M.topo), 'utf8'));
+  M.prepare?.(topo, tc);
   const geoms = topo.objects[M.object].geometries;
   const picked = geoms.map(M.pick);
   const nb = tc.neighbors(geoms);
@@ -212,11 +132,18 @@ function build(key) {
     }
   for (const l of links) Object.assign(l, { pa: shift(l.pa), pb: shift(l.pb) });
 
-  const file = new URL('../src/data/' + M.out, import.meta.url);
   const data = { w: +(maxx - minx).toFixed(1), h: +(maxy - miny).toFixed(1), states: out };
   if (links.length) data.links = links;
-  writeFileSync(file, JSON.stringify(data));
-  console.log(`Wrote ${out.length} regions to src/data/${M.out}`);
+  writeFileSync(new URL(`${key}/map.json`, LEVELS), JSON.stringify(data));
+  console.log(`Wrote ${out.length} regions to src/levels/${key}/map.json`);
 }
 
-for (const key of process.argv[2] ? [process.argv[2]] : Object.keys(MAPS)) build(key);
+const keys = readdirSync(LEVELS, { withFileTypes: true })
+  .filter(d => d.isDirectory() && existsSync(new URL(`${d.name}/source.mjs`, LEVELS)))
+  .map(d => d.name);
+const want = process.argv[2];
+if (want && !keys.includes(want)) {
+  console.error(`No level "${want}" with a source.mjs (have: ${keys.join(', ')})`);
+  process.exit(1);
+}
+for (const key of want ? [want] : keys) await build(key);

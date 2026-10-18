@@ -1,7 +1,7 @@
 import Matter from 'matter-js';
 import { CFG, TEST_IDS } from '../config.js';
 import { fitLabels, LABEL_FONT } from './labels.js';
-import { MAP } from './level.js';
+import { MAP } from '../levels/index.js';
 
 const { Vertices } = Matter;
 

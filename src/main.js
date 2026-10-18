@@ -9,7 +9,7 @@ import './input/input.js';
 import './game/bank.js';
 import './game/preview.js';
 import { TEST_IDS } from './config.js';
-import { LEVELS, LEVEL_KEY, MAP } from './map/level.js';
+import { LEVELS, LEVEL_KEY, MAP } from './levels/index.js';
 import { blendIt } from './game/blend.js';
 import { goEndless, newGame } from './game/game.js';
 import { giveUp } from './game/giveUp.js';
@@ -64,9 +64,9 @@ for (const L of Object.values(LEVELS)) {
   const b = document.createElement('button');
   b.type = 'button';
   b.textContent = L.name;
-  b.setAttribute('aria-pressed', L === MAP);
+  b.setAttribute('aria-pressed', L.key === MAP.key);
   b.addEventListener('click', () => {
-    if (L === MAP) return;
+    if (L.key === MAP.key) return;
     try {
       localStorage.setItem(LEVEL_KEY, L.key);
     } catch (e) {}

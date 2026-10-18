@@ -1,11 +1,9 @@
-/* The original level: the contiguous U.S. states. */
-import data from '../data/states.json';
+/* The original level (?map=us): the contiguous U.S. states. Map data: source.mjs -> map.json. */
 
 // prettier-ignore
 export default {
-  key: 'us',
+  order: 1,                           // first on the map switch, and the map new players start on
   name: 'U.S.',                       // on the map switch and in the tab title
-  data,
   unit: 'state', units: 'states',
   goal: 'The Lower 48',
   tagline: 'Drop U.S. states into the box. Neighbors stick together. Build the Lower 48.',

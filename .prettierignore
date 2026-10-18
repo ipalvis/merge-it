@@ -1,5 +1,5 @@
 dist/
 dist-single/
 dist-single-test/
-src/data/states.json
+src/levels/*/map.json
 package-lock.json
