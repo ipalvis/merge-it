@@ -1,5 +1,5 @@
 {
-  "name": "merge-everything",
+  "name": "merge-it",
   "private": true,
   "version": "1.0.0",
   "description": "Drop U.S. states into a box; neighbors stick together. Assemble the Lower 48.",
@@ -25,7 +25,8 @@
     "topojson-client": "3.1.0",
     "us-atlas": "3.0.1",
     "vite": "8.3.1",
-    "vite-plugin-singlefile": "2.3.3"
+    "vite-plugin-singlefile": "2.3.3",
+    "world-atlas": "2.0.2"
   },
   "engines": {
     "node": ">=22.12"

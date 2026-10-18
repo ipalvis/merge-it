@@ -19,6 +19,7 @@ import { clampAim } from './aim.js';
 import { endBlend } from './blend.js';
 import { newGame } from './game.js';
 import { STATES, makePiece } from '../map/geometry.js';
+import { MAP } from '../map/level.js';
 import {
   addGroup,
   buildGroup,
@@ -234,7 +235,7 @@ function step1() {
   show({
     step: 1,
     title: 'Drop a state',
-    text: 'Move to aim. Press and hold anywhere to rotate the waiting piece, then let go to drop it.',
+    text: 'Move to aim. Press and hold anywhere to rotate the current piece, then let go to drop it.',
   });
   G.tut.dropped = () => {
     G.tut.dropped = null;
@@ -363,7 +364,7 @@ function step4() {
     show({
       step: 4,
       title: 'Saved for later',
-      text: `${what} in the bank. Tap the bank whenever you want to drop it back in. You can also bank the piece that's waiting to drop. One bank per round.`,
+      text: `${what} in the bank. Tap the bank whenever you want to drop it back in. You can also bank the current piece. One bank per round.`,
       next: step5,
       pos: 'top',
     });
@@ -451,7 +452,7 @@ export function startTutorial() {
   step1();
 }
 export function endTutorial() {
-  markDone();
+  if (MAP.tutorial) markDone(); // playing a level without the tutorial shouldn't use up the first-run offer
   if (!G.tut) return;
   clearTimers();
   T = null;

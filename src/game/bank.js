@@ -2,6 +2,7 @@ import Matter from 'matter-js';
 import { Sound } from '../audio/sound.js';
 import { clampAim } from './aim.js';
 import { STATES, makePiece } from '../map/geometry.js';
+import { MAP } from '../map/level.js';
 import { ownerOf, removeGroup } from '../physics/world.js';
 import { G, tutBlocks } from '../state.js';
 import { $ } from '../ui/dom.js';
@@ -26,7 +27,7 @@ export function askBank(g) {
       ? `${STATES[ids[0]].name} moves to the bank${waiting ? ' instead of dropping' : ''}. Tap the bank whenever you want to drop it back in.`
       : waiting
         ? `${g.name} move to the bank instead of dropping. Tap the bank whenever you want to drop them back in.`
-        : `These ${ids.length} connected states move to the bank together. Tap the bank whenever you want to drop them back in.`;
+        : `These ${ids.length} connected ${MAP.units} move to the bank together. Tap the bank whenever you want to drop them back in.`;
   $('bankOverlay').hidden = false;
   $('bankYes').focus();
   updateHUD();
@@ -53,10 +54,10 @@ export function closeBank(yes) {
     for (const id of g.ids) delete ownerOf[id];
     for (const o of G.groups) if (o.isSleeping) Sleeping.set(o, false); // anything resting on it should fall
     const ids = [...g.ids];
-    G.bank = makePiece(ids, ids.length === 1 ? STATES[ids[0]].name : `${ids.length} connected states`);
+    G.bank = makePiece(ids, ids.length === 1 ? STATES[ids[0]].name : `${ids.length} connected ${MAP.units}`);
     G.bankPhase = 'holding';
     Sound.fx.bank();
-    if (!G.tut) toast(ids.length === 1 ? `${G.bank.name} banked` : `${ids.length} states banked`);
+    if (!G.tut) toast(ids.length === 1 ? `${G.bank.name} banked` : `${ids.length} ${MAP.units} banked`);
     G.tut?.banked?.();
   }
   updateHUD();

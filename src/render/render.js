@@ -2,6 +2,7 @@ import { BOX, CFG, VH, VW } from '../config.js';
 import { canDrop, hoverY } from '../game/aim.js';
 import { dangerY } from '../game/game.js';
 import { STATES } from '../map/geometry.js';
+import { LABEL_FONT } from '../map/labels.js';
 import { G } from '../state.js';
 import { canvas, ctx } from '../ui/canvas.js';
 import { theme } from '../ui/theme.js';
@@ -22,13 +23,52 @@ export function drawState(c, st, fill, lw, label) {
     c.lineJoin = 'round';
     c.stroke();
   }
-  if (label && st.area > 700) {
-    c.fillStyle = theme.stroke;
-    c.font = `800 ${st.area > 3000 ? 14.5 : 11.5}px "Public Sans", system-ui, sans-serif`;
-    c.textAlign = 'center';
-    c.textBaseline = 'middle';
-    c.fillText(st.id, st.labelAt.x, st.labelAt.y);
-  }
+  // the code, sized and placed to sit wholly inside the shape (none if it would be too small to read)
+  const L = st.label;
+  if (!label || L.size < CFG.labelMin) return;
+  c.fillStyle = theme.stroke;
+  c.font = `800 ${L.size}px ${LABEL_FONT}`;
+  c.textAlign = 'center';
+  c.textBaseline = 'alphabetic';
+  c.fillText(st.id, L.x + L.ox * L.size, L.y + L.oy * L.size);
+}
+/* Sea crossings for the states in ids (one piece, drawn in map space), drawn as a little bridge: a light band with a
+   dark outline. While the partner isn't joined, half a bridge sticks out from the coast toward it; once it is, the
+   bridge spans the water and rests a little way onto both coasts. */
+export function drawCrossings(c, ids) {
+  const bridge = (x0, y0, x1, y1) => {
+    c.beginPath();
+    c.moveTo(x0, y0);
+    c.lineTo(x1, y1);
+    c.lineWidth = CFG.crossingWidth + 2;
+    c.strokeStyle = theme.stroke;
+    c.stroke();
+    c.lineWidth = CFG.crossingWidth;
+    c.strokeStyle = theme.page;
+    c.stroke();
+  };
+  c.save();
+  c.lineCap = 'round';
+  for (const id of ids)
+    for (const x of STATES[id].crossings) {
+      const dx = x.at.x - x.from.x,
+        dy = x.at.y - x.from.y,
+        d = Math.hypot(dx, dy) || 1,
+        ux = dx / d,
+        uy = dy / d;
+      if (!ids.has(x.to))
+        bridge(
+          x.from.x - ux * 2,
+          x.from.y - uy * 2,
+          x.from.x + ux * CFG.crossingStub,
+          x.from.y + uy * CFG.crossingStub,
+        );
+      else if (id < x.to) {
+        const e = CFG.crossingStub / 2.5; // each joined crossing once
+        bridge(x.from.x - ux * e, x.from.y - uy * e, x.at.x + ux * e, x.at.y + uy * e);
+      }
+    }
+  c.restore();
 }
 function drawGroup(g, now) {
   ctx.save();
@@ -51,6 +91,7 @@ function drawGroup(g, now) {
     const st = STATES[id];
     drawState(ctx, st, 'transparent', 0, true);
   }
+  drawCrossings(ctx, g.ids);
   ctx.restore();
 }
 export function render(now) {
@@ -110,6 +151,7 @@ export function render(now) {
     for (const sid of pc.states) drawState(ctx, STATES[sid], theme['c' + STATES[sid].color], 1.1, false);
     ctx.shadowBlur = 0;
     for (const sid of pc.states) drawState(ctx, STATES[sid], 'transparent', 0, true);
+    drawCrossings(ctx, new Set(pc.states));
     ctx.restore();
     ctx.globalAlpha = 1;
   }
