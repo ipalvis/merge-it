@@ -1,7 +1,8 @@
 import { Sound } from '../audio/sound.js';
-import { CFG, DIVISIONS, REGIONS, STORAGE_KEYS } from '../config.js';
+import { CFG, STORAGE_KEYS } from '../config.js';
 import { endBlend } from './blend.js';
 import { DECK, GOAL_IDS } from '../map/geometry.js';
+import { MAP } from '../map/level.js';
 import { setupWorld } from '../physics/world.js';
 import { G } from '../state.js';
 import { launchConfetti, stopConfetti } from '../ui/confetti.js';
@@ -73,14 +74,14 @@ export function onMerged(g) {
   }
   Sound.fx.merge(g.ids.size);
   addScore(CFG.pts.mergePerState * g.ids.size * G.round);
-  for (const [name, ids] of Object.entries(DIVISIONS))
+  for (const [name, ids] of Object.entries(MAP.divisions))
     if (!doneSets.has(name) && ids.every(i => g.ids.has(i))) {
       doneSets.add(name);
       addScore(CFG.pts.division * G.round);
       toast(`You built ${name}`);
       Sound.fx.region();
     }
-  for (const [name, ids] of Object.entries(REGIONS))
+  for (const [name, ids] of Object.entries(MAP.regions))
     if (!doneSets.has(name) && ids.every(i => g.ids.has(i))) {
       doneSets.add(name);
       addScore(CFG.pts.region * G.round);
@@ -96,7 +97,7 @@ function completeRound(g) {
   g.golden = true;
   addScore(CFG.pts.complete * G.round);
   if (endless) {
-    toast(`The Lower 48 is complete. Round ${G.round + 1} next`);
+    toast(`${MAP.goal} is complete. Round ${G.round + 1} next`);
     G.clearTimer = setTimeout(() => {
       G.round++;
       startRound();
@@ -131,7 +132,7 @@ export function gameOver(reason) {
   const big = Math.max(0, ...G.groups.map(g => g.ids.size));
   $('overTitle').textContent = reason === 'giveup' ? 'Run ended' : 'The box overflowed';
   $('overText').textContent =
-    `Final score ${G.score.toLocaleString()} in round ${G.round}. Your biggest piece had ${big} of ${GOAL_IDS.length} states.`;
+    `Final score ${G.score.toLocaleString()} in round ${G.round}. Your biggest piece had ${big} of ${GOAL_IDS.length} ${MAP.units}.`;
   $('overOverlay').hidden = false;
   $('againBtn').focus();
   updateHUD();

@@ -7,7 +7,9 @@ import './ui/canvas.js';
 import './audio/sound.js';
 import './input/input.js';
 import './game/bank.js';
+import './game/preview.js';
 import { TEST_IDS } from './config.js';
+import { LEVELS, LEVEL_KEY, MAP } from './map/level.js';
 import { blendIt } from './game/blend.js';
 import { goEndless, newGame } from './game/game.js';
 import { giveUp } from './game/giveUp.js';
@@ -30,7 +32,7 @@ $('blendBtn').addEventListener('click', blendIt);
 $('giveUpBtn').addEventListener('click', giveUp);
 /* Title card. New players get "Start Tutorial" (big) or "Skip"; returning players get "Play" (big) or "Tutorial". */
 {
-  const firstTime = !tutorialDone();
+  const firstTime = MAP.tutorial && !tutorialDone();
   const play = () => {
     $('startOverlay').hidden = true;
     endTutorial(); // also remembers that the tutorial was offered
@@ -41,7 +43,8 @@ $('giveUpBtn').addEventListener('click', giveUp);
     $('startOverlay').hidden = true;
     startTutorial();
   };
-  $('titleTagline').hidden = !firstTime;
+  $('titleTagline').textContent = MAP.tagline; // always shown: it says which map this is
+  $('titleSecondary').hidden = !MAP.tutorial;
   $('titlePrimary').textContent = firstTime ? 'Start Tutorial' : 'Play';
   $('titleSecondary').textContent = firstTime ? 'Skip' : 'Tutorial';
   $('titlePrimary').addEventListener('click', firstTime ? tutorial : play);
@@ -55,10 +58,33 @@ $('restartBtn').addEventListener('click', () => {
   newGame();
 });
 $('endlessBtn').addEventListener('click', goEndless);
-if (TEST_IDS) document.title += ` (Test: ${TEST_IDS.length} states)`;
+document.title += ` ${MAP.name}`;
+/* Map switch: one button per level; choosing another reloads the page on that map (keeping test mode, if on) */
+for (const L of Object.values(LEVELS)) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = L.name;
+  b.setAttribute('aria-pressed', L === MAP);
+  b.addEventListener('click', () => {
+    if (L === MAP) return;
+    try {
+      localStorage.setItem(LEVEL_KEY, L.key);
+    } catch (e) {}
+    const url = new URL(location.href);
+    url.searchParams.set('map', L.key);
+    location.assign(url);
+  });
+  $('levelSwitch').appendChild(b);
+}
+if (TEST_IDS) document.title += ` (Test: ${TEST_IDS.length} ${MAP.units})`;
 
 fitCanvas();
 setupWorld();
 updateHUD();
 requestAnimationFrame(frame);
-document.fonts && document.fonts.ready.then(() => updateHUD());
+// The first layout can run before Public Sans loads; once it has, the header's real height is known, so size the box again
+document.fonts &&
+  document.fonts.ready.then(() => {
+    fitCanvas();
+    updateHUD();
+  });

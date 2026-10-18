@@ -1,7 +1,8 @@
 import { CFG } from '../config.js';
-import { GOAL_IDS, STATES } from '../map/geometry.js';
-import { drawState } from '../render/render.js';
+import { GOAL_IDS, IDS, MAP_W, STATES } from '../map/geometry.js';
+import { drawCrossings, drawState } from '../render/render.js';
 import { G } from '../state.js';
+import { PREVIEW_PAD } from './canvas.js';
 import { $ } from './dom.js';
 import { theme } from './theme.js';
 
@@ -21,7 +22,10 @@ export function updateHUD() {
   $('biggest').textContent = `${big}/${GOAL_IDS.length}`;
   $('bar').style.width = (big / GOAL_IDS.length) * 100 + '%';
   const nxt = G.deck[G.deck.length - 1];
-  $('nextName').textContent = G.tut ? '—' : nxt ? nxt.name : G.current ? 'Last one' : 'Deck empty';
+  const before = G.tut || G.state === 'title', // nothing dealt yet
+    allDropped = !before && !nxt && !G.current;
+  $('nextName').textContent = before ? '—' : nxt ? nxt.name : G.current ? 'Last one' : 'All pieces dropped!';
+  $('nextName').classList.toggle('wrap', allDropped); // a message, not a name: wrap it rather than cut it off
   $('shakeBtn').disabled = G.state !== 'playing' || performance.now() - G.lastShake < CFG.shakeCooldown;
   $('blendBtn').disabled = G.state !== 'playing' || G.blendsLeft <= 0;
   $('blendBtn').textContent = G.blendsLeft > 0 ? `Blend It! (${G.blendsLeft})` : 'Blended (0)';
@@ -51,8 +55,27 @@ export function updateHUD() {
       ? `Drop ${G.bank.name} next`
       : G.bankPhase === 'spent'
         ? 'Bank already used this round'
-        : 'Tap, then tap a piece in the box or the one waiting to drop to bank it (once per round)';
+        : 'Tap, then tap a piece in the box or the current piece to bank it (once per round)';
   drawThumb($('bankCanvas'), G.bank);
+  if (!$('mapPreview').hidden) drawMapPreview();
+}
+/* The finished map, with the current piece (the one about to drop) in gold so players can see where it belongs */
+function drawMapPreview() {
+  const c = $('previewCanvas'),
+    x = c.getContext('2d'),
+    dpr = window.devicePixelRatio || 1,
+    cssW = c.clientWidth,
+    k = (cssW - 2 * PREVIEW_PAD) / MAP_W;
+  c.width = Math.round(cssW * dpr);
+  c.height = Math.round(c.clientHeight * dpr);
+  x.setTransform(dpr * k, 0, 0, dpr * k, dpr * PREVIEW_PAD, dpr * PREVIEW_PAD);
+  const current = new Set(G.current?.states);
+  for (const id of IDS) {
+    const st = STATES[id];
+    drawState(x, st, current.has(id) ? theme.gold : theme['c' + st.color], 1 / k, false);
+  }
+  for (const id of IDS) drawState(x, STATES[id], 'transparent', 0, true);
+  drawCrossings(x, new Set(IDS));
 }
 function drawThumb(c, st) {
   const x = c.getContext('2d');

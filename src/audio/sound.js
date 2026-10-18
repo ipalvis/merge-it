@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from '../config.js';
+import { MAP } from '../map/level.js';
 
 export const Sound = (() => {
   let ctx = null,
@@ -93,21 +94,80 @@ export const Sound = (() => {
     return { f, g };
   }
 
-  /* --- the tune: 16 bars of eighth notes in C major, ~112 bpm. '~' holds, '.' rests --- */
+  /* --- the tunes: 16 bars of eighth notes, looped. Each level picks one (MAP.song).
+     '~' holds the note before, '.' rests. A note can end in ' (staccato: short and crisp) or > (accent: louder),
+     and A+B plays two sixteenths in one eighth. --- */
+  // Chords as note names in octave 2-3: [root, third, fifth]
   // prettier-ignore
-  const MEL = [
-    'E5 ~ G5 C6 ~ G5 E5 ~', 'A5 ~ G5 E5 ~ C5 D5 ~', 'F5 ~ A5 C6 ~ A5 G5 F5', 'G5 ~ ~ D5 ~ ~ . .',
-    'E5 ~ G5 C6 ~ D6 E6 ~', 'D6 C6 A5 ~ G5 E5 ~ ~', 'F5 ~ E5 D5 ~ B4 D5 ~', 'C5 ~ ~ ~ . E5 F5 G5',
-    'A5 ~ G5 ~ A5 C6 ~ A5', 'B5 ~ A5 ~ B5 D6 ~ B5', 'G5 ~ E5 ~ G5 B5 ~ ~', 'A5 ~ ~ ~ E5 . C5 .',
-    'F5 ~ A5 ~ C6 ~ A5 ~', 'G5 ~ B5 ~ D6 ~ B5 ~', 'C6 ~ B5 A5 ~ E5 F5 G5', 'A5 ~ G5 ~ F5 ~ D5 ~'
-  ].map(b => b.split(' '));
-  // chord per half bar: [root, third, fifth] as note names in octave 3
-  // prettier-ignore
-  const CH = { C:['C3','E3','G3'], Am:['A2','C3','E3'], F:['F2','A2','C3'], G:['G2','B2','D3'], Dm:['D3','F3','A3'], Em:['E3','G3','B3'] };
-  // prettier-ignore
-  const PROG = ['C C','Am Am','F F','G G','C C','Am Am','Dm G','C C','F F','G G','Em Em','Am Am','F F','G G','Am Am','G G'].map(x => x.split(' '));
-  const BPM = 112,
-    E8 = 60 / BPM / 2;
+  const CH = {
+    C:['C3','E3','G3'], Am:['A2','C3','E3'], F:['F2','A2','C3'], G:['G2','B2','D3'], Dm:['D3','F3','A3'], Em:['E3','G3','B3'],
+    Bb:['Bb2','D3','F3'], Gm:['G2','Bb2','D3'],
+  };
+  const SONGS = {
+    // The original: bright and bouncy, C major, ~112 bpm
+    bright: {
+      bpm: 112,
+      // prettier-ignore
+      mel: [
+        'E5 ~ G5 C6 ~ G5 E5 ~', 'A5 ~ G5 E5 ~ C5 D5 ~', 'F5 ~ A5 C6 ~ A5 G5 F5', 'G5 ~ ~ D5 ~ ~ . .',
+        'E5 ~ G5 C6 ~ D6 E6 ~', 'D6 C6 A5 ~ G5 E5 ~ ~', 'F5 ~ E5 D5 ~ B4 D5 ~', 'C5 ~ ~ ~ . E5 F5 G5',
+        'A5 ~ G5 ~ A5 C6 ~ A5', 'B5 ~ A5 ~ B5 D6 ~ B5', 'G5 ~ E5 ~ G5 B5 ~ ~', 'A5 ~ ~ ~ E5 . C5 .',
+        'F5 ~ A5 ~ C6 ~ A5 ~', 'G5 ~ B5 ~ D6 ~ B5 ~', 'C6 ~ B5 A5 ~ E5 F5 G5', 'A5 ~ G5 ~ F5 ~ D5 ~'
+      ],
+      // chord per half bar
+      // prettier-ignore
+      prog: ['C C','Am Am','F F','G G','C C','Am Am','Dm G','C C','F F','G G','Em Em','Am Am','F F','G G','Am Am','G G'],
+      melVol: 0.5,
+      melLen: 0.95, // share of the written length a melody note rings for
+      backing(v, ch, s8, bar, t, E8) {
+        // bass: root, then octave and fifth bounces
+        const bassPat = { 0: [ch[0] - 12, 0.55], 3: [ch[0], 0.3], 4: [ch[0] - 12, 0.45], 6: [ch[2] - 12, 0.35] };
+        if (bassPat[s8]) tone(v, 'triangle', mtof(bassPat[s8][0]), t, 0.008, bassPat[s8][1], E8 * 1.6);
+        // soft off-beat chord plucks
+        if (s8 === 2 || s8 === 6) for (const m of ch) tone(v, 'square', mtof(m + 12), t, 0.004, 0.035, 0.12);
+        // light percussion: thump on the beat, tick on the off-beat
+        if (s8 === 0 || s8 === 4) tone(v, 'sine', 140, t, 0.003, 0.5, 0.11, 50);
+        if (s8 % 2 === 1) noise(v, t, 0.04, 0.08, 'highpass', 7000);
+        if (s8 === 4 && bar % 2 === 1) noise(v, t, 0.12, 0.12, 'bandpass', 1800, 900, 0.8);
+      },
+    },
+    // Europe: the same instruments, lighter and more lyrical. F major, 120 bpm. A rising opening phrase that returns
+    // three times (each time with a staccato pickup), and a middle section that sighs down in a sequence
+    // (D minor, B flat, G minor), each bar ending in a little turn, then climbs back to the opening.
+    calm: {
+      bpm: 120,
+      // prettier-ignore
+      mel: [
+        "C5' C5' F5 ~ A5> ~ ~ G5",  "F5 ~ E5+F5 G5' F5 ~ D5 ~",   "D5' D5' F5 ~ Bb5> ~ ~ A5",   "G5 ~ A5+G5 F5 G5 ~ . .",
+        "C5' C5' F5 ~ A5 ~ Bb5+A5 C6", "D6> ~ C6 ~ A5 ~ E5' A5'", "Bb5 ~ A5' Bb5' G5 ~ E5+F5 E5", "F5 ~ ~ ~ A5' Bb5' C6' .",
+        "D6> ~ ~ C6' A5 ~ ~ Bb5+A5", "Bb5> ~ ~ A5' F5 ~ ~ G5+F5", "G5> ~ ~ F5' D5 ~ ~ E5+D5",  "E5 ~ ~ F5' G5 ~ E5' D5'",
+        "C5' C5' F5 ~ A5> ~ ~ G5",  "A5 ~ G5+A5 C6 D6> ~ C6 ~",   "Bb5 ~ ~ A5' G5 ~ A5+G5 E5",  'F5 ~ ~ ~ ~ ~ . .'
+      ],
+      // prettier-ignore
+      prog: ['F F','Dm Dm','Bb Bb','C C','F F','Am Am','Bb C','F F','Dm Dm','Bb Bb','Gm Gm','C C','F F','Am Dm','Gm C','F F'],
+      melVol: 0.44,
+      melLen: 1.1, // held notes ring a little into the next one
+      backing(v, ch, s8, bar, t, E8) {
+        // bass: the root on the beat, the fifth halfway, and a light octave pickup into the next chord
+        if (s8 === 0) tone(v, 'triangle', mtof(ch[0] - 12), t, 0.015, 0.48, E8 * 3);
+        if (s8 === 4) tone(v, 'triangle', mtof(ch[2] - 12), t, 0.015, 0.34, E8 * 2.6);
+        if (s8 === 7) tone(v, 'triangle', mtof(ch[0]), t, 0.008, 0.18, E8 * 0.9);
+        // the chord, broken into a soft ripple instead of off-beat plucks
+        const rip = { 1: 0, 2: 1, 3: 2, 5: 0, 6: 1, 7: 2 }[s8];
+        if (rip !== undefined) tone(v, 'square', mtof(ch[rip] + 12), t, 0.005, 0.024, 0.22);
+        // percussion: a thump on beats one and three, soft ticks on the off-beats
+        if (s8 === 0) tone(v, 'sine', 130, t, 0.003, 0.4, 0.12, 50);
+        if (s8 === 4) tone(v, 'sine', 130, t, 0.003, 0.24, 0.1, 50);
+        if (s8 % 2 === 1) noise(v, t, 0.035, s8 === 3 || s8 === 7 ? 0.045 : 0.03, 'highpass', 7000);
+      },
+    },
+  };
+  for (const song of Object.values(SONGS)) {
+    song.mel = song.mel.map(b => b.split(' '));
+    song.prog = song.prog.map(x => x.split(' '));
+  }
+  const SONG = SONGS[MAP.song] ?? SONGS.bright,
+    E8 = 60 / SONG.bpm / 2;
   let step = 0,
     nextT = 0,
     timer = null;
@@ -116,24 +176,27 @@ export const Sound = (() => {
     const bar = (i >> 3) % 16,
       s8 = i & 7,
       half = s8 >> 2;
-    const v = musicBus;
     // melody
-    const tok = MEL[bar][s8];
+    const tok = SONG.mel[bar][s8];
     if (tok !== '~' && tok !== '.') {
-      let len = 1;
-      while (s8 + len < 8 && MEL[bar][s8 + len] === '~') len++;
-      mallet(v, NOTE(tok), t, 0.5, Math.max(0.18, len * E8 * 0.95));
+      const notes = tok.split('+'),
+        dt = E8 / notes.length;
+      notes.forEach((n, k) => {
+        const art = /['>]*$/.exec(n)[0],
+          staccato = art.includes("'");
+        let len = 1;
+        if (notes.length === 1) while (s8 + len < 8 && SONG.mel[bar][s8 + len] === '~') len++;
+        const ring = staccato ? 0.4 * dt : Math.max(0.18, len * dt * SONG.melLen);
+        mallet(
+          musicBus,
+          NOTE(n.slice(0, n.length - art.length)),
+          t + k * dt,
+          SONG.melVol * (art.includes('>') ? 1.3 : 1),
+          ring,
+        );
+      });
     }
-    const ch = CH[PROG[bar][half]].map(NOTE);
-    // bass: root, then octave and fifth bounces
-    const bassPat = { 0: [ch[0] - 12, 0.55], 3: [ch[0], 0.3], 4: [ch[0] - 12, 0.45], 6: [ch[2] - 12, 0.35] };
-    if (bassPat[s8]) tone(v, 'triangle', mtof(bassPat[s8][0]), t, 0.008, bassPat[s8][1], E8 * 1.6);
-    // soft off-beat chord plucks
-    if (s8 === 2 || s8 === 6) for (const m of ch) tone(v, 'square', mtof(m + 12), t, 0.004, 0.035, 0.12);
-    // light percussion: thump on the beat, tick on the off-beat
-    if (s8 === 0 || s8 === 4) tone(v, 'sine', 140, t, 0.003, 0.5, 0.11, 50);
-    if (s8 % 2 === 1) noise(v, t, 0.04, 0.08, 'highpass', 7000);
-    if (s8 === 4 && bar % 2 === 1) noise(v, t, 0.12, 0.12, 'bandpass', 1800, 900, 0.8);
+    SONG.backing(musicBus, CH[SONG.prog[bar][half]].map(NOTE), s8, bar, t, E8);
   }
   function pump() {
     if (!ctx) return;

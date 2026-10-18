@@ -1,6 +1,6 @@
 import Matter from 'matter-js';
 import { Sound } from '../audio/sound.js';
-import { CFG, VW } from '../config.js';
+import { CFG, VH, VW } from '../config.js';
 import { G, tutBlocks } from '../state.js';
 import { canvas } from '../ui/canvas.js';
 import { updateHUD } from '../ui/hud.js';
@@ -31,7 +31,9 @@ export function updateBlend(now) {
   G.engine.gravity.x = CFG.gravity * Math.sin(th);
   G.engine.gravity.y = CFG.gravity * Math.cos(th);
   const shrink = Math.min(1, p / 0.12, (1 - p) / 0.12); // shrink in, spin, grow back
-  canvas.style.transform = `rotate(${th}rad) scale(${1 - (1 - CFG.blendScale) * shrink})`;
+  // A narrow box shrinks further, so it never spins wider than its own footprint (the standard box: about 0.68 anyway)
+  const small = Math.min(CFG.blendScale, Math.min(VW, VH) / Math.hypot(VW, VH));
+  canvas.style.transform = `rotate(${th}rad) scale(${1 - (1 - small) * shrink})`;
   if (p >= 1) {
     endBlend();
     G.state = 'playing';

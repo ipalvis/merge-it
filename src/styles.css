@@ -89,6 +89,11 @@ main {
   padding: 10px 14px 12px;
   gap: 8px;
 }
+/* fitCanvas measures these to size the box; if they could shrink, a moment of overflow (e.g. the map preview
+   appearing) would squash the progress bar and the measurement would keep it squashed */
+main > * {
+  flex-shrink: 0;
+}
 header {
   display: flex;
   align-items: flex-end;
@@ -126,6 +131,10 @@ h1 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.next strong.wrap {
+  white-space: normal;
+  line-height: 1.15;
 }
 #nextCanvas {
   width: 56px;
@@ -295,6 +304,70 @@ h1 {
 .iconbtn.beside svg {
   width: 21px;
   height: 21px;
+}
+/* The map preview toggle sits below reset; it isn't destructive, so it doesn't turn red */
+.iconbtn.preview.beside {
+  top: 58px;
+}
+/* Finished-map preview: beside the box under reset and the toggle when there's room (captions on top),
+   otherwise below the controls (captions to the right, to save height) */
+.mappreview {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  line-height: 1.2;
+}
+.mappreview.beside {
+  flex-direction: column;
+  gap: 6px;
+  transform-origin: 23px -37px; /* the centre of the ? button above it, so the pop grows out of the button */
+}
+.mappreview-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.mappreview:not(.beside) .mappreview-text {
+  align-items: flex-start;
+}
+.mappreview[hidden] {
+  display: none;
+}
+.mappreview.beside {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 118px;
+}
+.mappreview small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+#previewCanvas {
+  display: block;
+  border-radius: 12px;
+  background: var(--ocean);
+}
+.mappreview .swatch {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-right: 0.35em;
+  border-radius: 3px;
+  background: var(--gold);
+  vertical-align: -0.05em;
+}
+.iconbtn.preview svg {
+  transform: scale(1.05); /* the ? reads a touch small at the shared icon size */
+}
+.iconbtn.preview:hover:not(:disabled),
+.iconbtn.preview[aria-pressed='true'] {
+  background: var(--button);
+  color: var(--button-ink);
+  box-shadow: inset 0 0 0 2px var(--button);
 }
 .bank {
   display: flex;
@@ -594,6 +667,31 @@ button:focus-visible {
   justify-content: flex-end;
   align-items: center;
   gap: 10px;
+}
+/* Map switch: a pill like the theme toggle, at the left of the top bar; the current map is filled in */
+.levels {
+  margin-right: auto;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--ocean);
+  box-shadow: inset 0 0 0 2px var(--frame);
+}
+.levels button {
+  font-size: 0.78rem;
+  line-height: 1.2;
+  padding: 0.3em 0.85em;
+  background: transparent;
+  color: var(--ink);
+}
+.levels button:hover {
+  background: var(--ocean-line);
+}
+.levels button[aria-pressed='true'] {
+  background: var(--button);
+  color: var(--button-ink);
+  cursor: default;
 }
 .toggle {
   position: relative;
