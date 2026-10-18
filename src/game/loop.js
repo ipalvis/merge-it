@@ -47,7 +47,9 @@ function settle(now) {
     } else g.stillSince = null;
   }
 }
-export function frame(now) {
+/* One frame of game logic, without drawing. The difficulty simulator (scripts/rate-levels.mjs) calls this directly
+   on a simulated clock. */
+export function step(now) {
   if (G.press && G.state === 'playing' && G.current && now - G.press.t0 > CFG.rotateDelay) {
     G.aimAngle += (CFG.rotateSpeed * Math.min(100, now - G.last)) / 1000;
     clampAim();
@@ -67,6 +69,9 @@ export function frame(now) {
   }
   G.tut?.tick?.(now);
   G.last = now;
+}
+export function frame(now) {
+  step(now);
   render(now);
   requestAnimationFrame(frame);
 }

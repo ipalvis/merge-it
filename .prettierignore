@@ -2,4 +2,5 @@ dist/
 dist-single/
 dist-single-test/
 src/levels/*/map.json
+src/levels/*/difficulty.json
 package-lock.json

@@ -7,6 +7,7 @@
  * Errors fail the run; warnings are printed but pass.
  */
 import { existsSync, readdirSync, readFileSync } from 'fs';
+import { inputsHash, ratingInputs } from './difficulty.mjs';
 
 const LEVELS = new URL('../src/levels/', import.meta.url);
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
@@ -157,7 +158,19 @@ for (const key of keys) {
   }
   if (L.tutorial) unknown('tutorial (game/tutorial.js uses these)', TUTORIAL_IDS);
 
-  report(key, err, warn, `${ids.length} ${L.units ?? 'regions'}`);
+  // Difficulty rating (scripts/rate-levels.mjs): there, and rated against the current settings and map
+  let rated = '';
+  if (!has('difficulty.json')) warn.push(`not rated yet: run npm run rate:levels -- ${key}`);
+  else {
+    const R = JSON.parse(readFileSync(new URL(`${key}/difficulty.json`, LEVELS), 'utf8'));
+    rated = `, difficulty ${R.rating} ${R.label}`;
+    if (R.inputs !== inputsHash(key))
+      warn.push(
+        `difficulty rating is out of date (${ratingInputs(key).join(', ')} changed): run npm run rate:levels -- ${key}`,
+      );
+  }
+
+  report(key, err, warn, `${ids.length} ${L.units ?? 'regions'}${rated}`);
 }
 function report(key, err, warn, what = '') {
   errors += err.length;

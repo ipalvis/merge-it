@@ -7,6 +7,7 @@ Browser game: drop the pieces of a map (U.S. states or European countries) into 
 - `npm run dev` — dev server at http://localhost:5173 (hot reload). `?test=1` deals only Colorado + Utah for quick win/Endless checks. `?map=eu` loads the Europe map (Spain + Portugal with `?test=1`); without `?map=` the game opens on the last map played. Check changes on both maps.
 - `npm run build` — checks every level (`scripts/check-levels.mjs`), then builds to `dist/` (what Cloudflare Pages serves). Run this before saying a change is done.
 - `npm run build:map [-- <key>]` — regenerates a level's `map.json` (all levels without a key); `npm run check:levels` checks levels on their own.
+- `npm run rate:levels [-- <key>]` — difficulty rating (`scripts/rate-levels.mjs`): plays each level with simulated players in headless Edge/Chrome (10–15 minutes a level) and writes `src/levels/<key>/difficulty.json`; the rating (1–5, half steps) is mainly how often the careful player completes the map, with fill separating levels that complete equally rarely (`scripts/difficulty.mjs`). Re-rate after changing a level's settings or map, or `CFG` (check-levels warns when a rating is stale). See `docs/difficulty.md`.
 - `npm run format` / `npm run format:check` — Prettier. Run `format` after editing.
 - `npm run build:single` / `npm run build:single-test` — single-file builds for claude.ai artifacts.
 
@@ -18,6 +19,7 @@ Every push to `main` on GitHub (`ipalvis/merge-it`) auto-deploys to Cloudflare P
 
 - Shared mutable state lives on `G` in `src/state.js`. Values only one module uses stay private to that module.
 - Gameplay tunables live in `CFG` in `src/config.js` (gravity, red line, cooldowns, blends per round, scoring). Prefer adding a CFG value over a magic number.
+- The frame loop (`src/game/loop.js`) is `step(now)` (game logic) plus drawing; the difficulty simulator calls `step` on a fake clock with seeded `Math.random`, so game logic should read time only through `performance.now()`/`setTimeout` and randomness through `Math.random`.
 - Flow is driven by `G.state`: `title | playing | blending | bankpick | banking | clearing | won | over | tutorial`. Physics only steps in `playing`, `clearing`, `blending`.
 - Physics bodies for pieces are Matter compound bodies ("groups") with `g.ids` (a Set of state ids). The waiting piece is `G.current`, a piece object with `.states` (array), `.name`, `.R`, `.c`.
 - Merges: `src/physics/world.js` queues neighbor contacts and snaps merged pieces into true map position; `onMerged` in `src/game/game.js` handles scoring, toasts and round completion.

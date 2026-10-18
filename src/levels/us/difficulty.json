@@ -1,0 +1,52 @@
+{
+  "rating": 5,
+  "label": "Expert",
+  "range": [
+    4.5,
+    5
+  ],
+  "stats": {
+    "pieces": 43,
+    "regions": 48,
+    "fill": 0.52,
+    "mapHeight": 0.91,
+    "solidity": 0.84,
+    "widestPiece": 0.28,
+    "medianPiece": 0.14,
+    "neighbors": 4.42,
+    "deadEnds": 1,
+    "seaLinks": 0,
+    "boxW": 600
+  },
+  "sim": {
+    "aiming": {
+      "games": 32,
+      "winRate": 0,
+      "overflowRate": 0.28,
+      "stuckRate": 0.72,
+      "assembled": 0.34,
+      "assembledSE": 0.03,
+      "leftover": 8.78,
+      "joinOnLanding": 0.43,
+      "pressure": 0.99,
+      "shakes": 32.63,
+      "blends": 3,
+      "minutes": 1.89
+    },
+    "random": {
+      "games": 32,
+      "winRate": 0,
+      "overflowRate": 0.13,
+      "stuckRate": 0.88,
+      "assembled": 0.19,
+      "assembledSE": 0.01,
+      "leftover": 19.47,
+      "joinOnLanding": 0.18,
+      "pressure": 0.93,
+      "shakes": 33.31,
+      "blends": 2.63,
+      "minutes": 1.82
+    }
+  },
+  "inputs": "16a00181ca3a"
+}

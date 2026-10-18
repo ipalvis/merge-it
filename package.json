@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "build:map": "node scripts/build-map.mjs",
     "check:levels": "node scripts/check-levels.mjs",
+    "rate:levels": "node scripts/rate-levels.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -20,6 +21,7 @@
     "matter-js": "0.19.0"
   },
   "devDependencies": {
+    "playwright-core": "1.63.0",
     "poly-decomp": "0.3.0",
     "prettier": "3.9.9",
     "simplify-js": "1.2.4",

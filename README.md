@@ -53,6 +53,10 @@ src/
 scripts/
   build-map.mjs       offline map-data pipeline: runs each level's source.mjs and writes its map.json
   check-levels.mjs    checks every level's settings against its map (runs as part of npm run build)
+  rate-levels.mjs     difficulty rating: measures each level and plays it with simulated players (npm run rate:levels)
+  difficulty.mjs      the difficulty scale, shared by the two above
+docs/
+  difficulty.md       what the difficulty ratings mean, how they're measured, and what makes a level harder
 ```
 
 ## Adding a level
@@ -63,6 +67,7 @@ scripts/
 4. Write `level.js` with its settings and wording: copy `eu/level.js` and change it, including `order` (its place on the map switch).
 5. Run `npm run check:levels`. It reports anything that would break play: regions that can never join the rest (add a link in `source.mjs`), regions missing from the color groups, clusters that don't touch, bonus groups or test ids naming regions that aren't on the map, and so on.
 6. Play it with `npm run dev` and `?map=jp` (`&test=1` deals only its test pair). The map switch picks it up on its own.
+7. Rate it with `npm run rate:levels -- jp` (10–15 minutes; needs Edge or Chrome installed). It plays the level with simulated players and writes `difficulty.json` with a rating from 1 to 5, mainly from how often a careful player completes the map. [docs/difficulty.md](docs/difficulty.md) explains the scale and what makes a level easier or harder. Rate it again after changing the level; `check:levels` warns when a rating is out of date.
 
 **How state is shared:** anything that more than one module reads and changes lives on the `G` object in `src/state.js` (for example `G.score`, `G.state`, `G.groups`). Values only one module uses stay private to that module. Constants live in `src/config.js`.
 
