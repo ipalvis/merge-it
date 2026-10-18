@@ -11,7 +11,7 @@ Browser game: drop the pieces of a map (U.S. states or European countries) into 
 
 ## Deploying
 
-Every push to `main` on GitHub auto-deploys to Cloudflare Pages (https://merge-everything.pages.dev; the Pages project and GitHub repo still use the game's former name). Do not push to `main` unless asked. For risky changes, use a branch (Cloudflare builds a preview URL per branch).
+Every push to `main` on GitHub (`ipalvis/merge-it`) auto-deploys to Cloudflare Pages (https://merge-it.pages.dev; add `?map=us` or `?map=eu` to open a given map). The old project at https://merge-everything.pages.dev (the game's former name) is left as is; saved data there (best scores, settings) doesn't carry over to the new address. Do not push to `main` unless asked. For risky changes, use a branch (Cloudflare builds a preview URL per branch).
 
 ## How the code is organized
 
