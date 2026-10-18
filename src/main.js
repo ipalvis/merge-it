@@ -82,9 +82,9 @@ fitCanvas();
 setupWorld();
 updateHUD();
 requestAnimationFrame(frame);
-// The first layout can run before Public Sans loads; once it has, the header's real height is known, so size the box again
-document.fonts &&
-  document.fonts.ready.then(() => {
-    fitCanvas();
-    updateHUD();
-  });
+// The first layout can run before Public Sans loads; once it has, the header's real height is known, so size the box
+// again (on each load: with a late stylesheet the font starts loading only then)
+document.fonts?.addEventListener('loadingdone', () => {
+  fitCanvas();
+  updateHUD();
+});

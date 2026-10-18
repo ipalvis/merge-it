@@ -1,7 +1,7 @@
 /*
- * Labels: each code goes where its text box can be largest while staying entirely inside the region's main shape,
- * and is sized to fit (up to CFG.labelMax). So small regions get a small code instead of none, and odd shapes
- * (Norway, Croatia, Florida) get theirs in the widest spot, not the centroid.
+ * Labels: each code is sized as large as its text box can be while staying entirely inside the region's main shape
+ * (up to CFG.labelMax), so small regions get a small code instead of none. At that size it sits on the shape's
+ * centroid when it fits there; odd shapes (Florida, Norway, Croatia) get it as near the centroid as it fits.
  * Sets st.label = { x, y, size, ox, oy }: draw at (x + ox * size, y + oy * size), centered, alphabetic baseline.
  */
 import { CFG } from '../config.js';
@@ -63,7 +63,23 @@ function rectFits(poly, x, y, hw, hh) {
     if (hitsRect(poly[j], poly[i], x - hw, y - hh, x + hw, y + hh)) return false;
   return true;
 }
-/* Largest font size whose text box (tw x th per px of font) fits around some point of poly */
+/* Area centroid: where the eye puts a shape's middle */
+function centroid(poly) {
+  let a = 0,
+    cx = 0,
+    cy = 0;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const p = poly[j],
+      q = poly[i],
+      k = p.x * q.y - q.x * p.y;
+    a += k;
+    cx += (p.x + q.x) * k;
+    cy += (p.y + q.y) * k;
+  }
+  return { x: cx / (3 * a), y: cy / (3 * a) };
+}
+/* Largest font size whose text box (tw x th per px of font) fits around some point of poly, placed as near the
+   centroid as that size allows */
 function fit(poly, tw, th) {
   const xs = poly.map(p => p.x),
     ys = poly.map(p => p.y),
@@ -72,13 +88,12 @@ function fit(poly, tw, th) {
     y0 = Math.min(...ys),
     y1 = Math.max(...ys),
     step = Math.max(0.4, Math.min(x1 - x0, y1 - y0) / 30);
-  // Candidates: grid points well inside the shape (deep points are where a box fits best)
-  let cands = [];
+  const grid = [];
   for (let y = y0 + step / 2; y < y1; y += step)
-    for (let x = x0 + step / 2; x < x1; x += step)
-      if (inside(poly, x, y)) cands.push({ x, y, d: edgeDist(poly, x, y) });
-  const deepest = Math.max(0, ...cands.map(c => c.d));
-  cands = cands
+    for (let x = x0 + step / 2; x < x1; x += step) if (inside(poly, x, y)) grid.push({ x, y, d: edgeDist(poly, x, y) });
+  // Size: try grid points well inside the shape (deep points are where a box fits best)
+  const deepest = Math.max(0, ...grid.map(c => c.d));
+  const cands = grid
     .filter(c => c.d >= deepest * 0.5)
     .sort((a, b) => b.d - a.d)
     .slice(0, 200);
@@ -93,7 +108,17 @@ function fit(poly, tw, th) {
     if (lo > best.size) best = { x: c.x, y: c.y, size: lo };
     if (best.size >= CFG.labelMax) break;
   }
-  return best;
+  // Place: on the centroid if it fits there; otherwise the fitting grid point nearest it, slid toward it as far
+  // as the box still fits
+  const mid = centroid(poly);
+  if (ok(mid, best.size)) return { ...mid, size: best.size };
+  const far = c => Math.hypot(c.x - mid.x, c.y - mid.y);
+  const from = grid.sort((a, b) => far(a) - far(b)).find(c => ok(c, best.size)) ?? best,
+    at = t => ({ x: from.x + (mid.x - from.x) * t, y: from.y + (mid.y - from.y) * t });
+  let lo = 0,
+    hi = 1;
+  for (let k = 0; k < 12; k++) ok(at((lo + hi) / 2), best.size) ? (lo = (lo + hi) / 2) : (hi = (lo + hi) / 2);
+  return { ...at(lo), size: best.size };
 }
 export function fitLabels(states) {
   const m = document.createElement('canvas').getContext('2d');

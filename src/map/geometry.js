@@ -50,9 +50,11 @@ for (const s of Object.values(STATES))
     part.convex.map(v => ({ state: s.id, verts: v, area: Math.abs(Vertices.area(v)) })),
   );
 export const IDS = Object.keys(STATES);
-// Fit labels with whatever font is ready now, then again once Public Sans has loaded (its letters are a little wider)
+// Fit labels with whatever font is ready now, then again once Public Sans has loaded (its letters are a little
+// wider). Listen for the load rather than awaiting it: if the stylesheet applies late, the font isn't even declared yet.
 fitLabels(Object.values(STATES));
-document.fonts?.load(`800 12px ${LABEL_FONT}`).then(() => fitLabels(Object.values(STATES)));
+document.fonts?.load(`800 12px ${LABEL_FONT}`);
+document.fonts?.addEventListener('loadingdone', () => fitLabels(Object.values(STATES)));
 /* States that must all be connected to complete a round */
 export const GOAL_IDS = TEST_IDS ?? IDS;
 MAP.colorGroups.forEach((ids, c) =>

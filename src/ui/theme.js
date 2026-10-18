@@ -1,3 +1,4 @@
+import { fitCanvas } from './canvas.js';
 import { $ } from './dom.js';
 import { updateHUD } from './hud.js';
 
@@ -39,6 +40,16 @@ function applyTheme(t, save) {
   document.getElementById('themeToggle').setAttribute('aria-checked', t === 'dark');
 }
 readTheme();
+// Safari sometimes runs this before the stylesheet applies: the colors read empty and every canvas draws black.
+// Until they're there, look again each frame; then redraw and re-measure the layout.
+if (!theme.box)
+  requestAnimationFrame(function whenStyled() {
+    if (!getComputedStyle(document.documentElement).getPropertyValue('--box').trim())
+      return requestAnimationFrame(whenStyled);
+    readTheme();
+    fitCanvas();
+    updateHUD();
+  });
 document
   .getElementById('themeToggle')
   .addEventListener('click', () =>
