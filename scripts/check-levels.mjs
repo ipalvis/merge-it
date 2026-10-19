@@ -8,6 +8,7 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { inputsHash, ratingInputs } from './difficulty.mjs';
+import { measureLevel } from './level-geometry.mjs';
 
 const LEVELS = new URL('../src/levels/', import.meta.url);
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
@@ -17,27 +18,18 @@ const COLORS = new Set(read('../src/styles.css').match(/--c\d+(?=:)/g)).size;
 const SONGS = [...read('../src/audio/sound.js').matchAll(/^ {4}(\w+): \{/gm)].map(m => m[1]);
 // Regions the scripted tutorial uses (game/tutorial.js), so a level with `tutorial: true` must have them
 const TUTORIAL_IDS = ['CO', 'WY', 'UT', 'MT', 'AZ', 'NM'];
-/* Minimum piece size: every piece (a region, or a pre-joined cluster) must be at least this big as drawn in the game,
-   in the box's own units (logical px², the same in every level). Smaller pieces are too small to aim at reliably and
-   to show a code. It's Paraguay's size in Latin America (579) when the rule was set, rounded down. The two original
-   maps came first and keep their smaller pieces (Moldova, New Jersey); every new level has to follow it. */
+/* Design rules, in the box's own units (logical px, the same in every level; see level-geometry.mjs). The two
+   original maps came first and keep their small pieces (Moldova, New Jersey) and narrow joins (Colorado-Oklahoma, the
+   Øresund Bridge); every new level has to follow them.
+   - Minimum piece size: every piece (a region, or a pre-joined cluster) at least this big as drawn. Smaller pieces
+     are too small to aim at reliably, or to show a code. It's Paraguay's size in the first Latin America map (579),
+     rounded down.
+   - Minimum connection width: the whole map must be completable using only connections at least this wide (a shared
+     border, or a sea crossing's bridge), so no piece depends on a sliver to join: half the width of a minimum-size
+     piece. Narrower borders can exist; the map just mustn't need them (Panama to Colombia was 9). */
 const MIN_PIECE_AREA = 570,
-  SIZE_EXEMPT = new Set(['us', 'eu']);
-// The map's scale in the box (map/geometry.js): it fills CFG.mapFill of the box width, or CFG.mapMaxH of its height
-const CONFIG = read('../src/config.js'),
-  setting = re => +CONFIG.match(re)[1],
-  MAP_FILL = setting(/mapFill: ([\d.]+)/),
-  MAP_MAX_H = setting(/mapMaxH: ([\d.]+)/),
-  STD_BOX_W = setting(/STD_BOX_W = (\d+)/);
-const polyArea = pts => {
-  let a = 0;
-  for (let i = 0; i < pts.length; i++) {
-    const [x0, y0] = pts[i],
-      [x1, y1] = pts[(i + 1) % pts.length];
-    a += x0 * y1 - x1 * y0;
-  }
-  return Math.abs(a) / 2;
-};
+  MIN_CONNECTION = 12,
+  RULES_EXEMPT = new Set(['us', 'eu']);
 
 /* Do these ids form one connected piece using only each other as stepping stones? Returns the separate parts. */
 function parts(ids, nb) {
@@ -146,22 +138,30 @@ for (const key of keys) {
     if (p.length > 1) err.push(`cluster "${c.name}" doesn't hold together: ${p.map(x => x.join(',')).join(' | ')}`);
   }
 
-  // Every piece at least the minimum size (see MIN_PIECE_AREA)
-  if (!SIZE_EXEMPT.has(key)) {
-    const S = Math.min((MAP_FILL * (L.boxW ?? STD_BOX_W)) / D.w, MAP_MAX_H / D.h),
-      regionArea = Object.fromEntries(
-        (D.states ?? []).map(s => [s.id, s.parts.reduce((t, p) => t + polyArea(p.outline), 0) * S * S]),
-      );
-    const pieces = [
-      ...(L.clusters ?? []).map(c => [`"${c.name}"`, c.states]),
-      ...ids.filter(i => !inCluster.has(i)).map(i => [i, [i]]),
-    ];
-    for (const [name, list] of pieces) {
-      const a = list.reduce((t, i) => t + (regionArea[i] ?? 0), 0);
-      if (a < MIN_PIECE_AREA)
+  // Design rules (see MIN_PIECE_AREA, MIN_CONNECTION): big enough pieces, completable through wide enough connections
+  if (!RULES_EXEMPT.has(key) && ids.length && !err.length) {
+    const { pieces, links } = measureLevel(L, D);
+    for (const p of pieces)
+      if (p.area < MIN_PIECE_AREA)
         err.push(
-          `piece ${name} is ${Math.round((100 * a) / MIN_PIECE_AREA)}% of the minimum piece size: pre-join it with a neighbor (clusters)`,
+          `piece ${p.name} is ${Math.round((100 * p.area) / MIN_PIECE_AREA)}% of the minimum piece size: pre-join it with a neighbor (clusters)`,
         );
+    const wide = {};
+    for (const l of links.filter(l => l.width >= MIN_CONNECTION)) {
+      (wide[l.a] ??= []).push(l.b);
+      (wide[l.b] ??= []).push(l.a);
+    }
+    const sides = parts(
+      pieces.map(p => p.name),
+      wide,
+    );
+    if (sides.length > 1) {
+      const side = name => sides.findIndex(s => s.includes(name)),
+        narrow = links.filter(l => side(l.a) !== side(l.b)).map(l => `${l.a}-${l.b} ${l.width.toFixed(1)}`);
+      err.push(
+        `only narrow connections (under ${MIN_CONNECTION}) join ${sides.map(s => s.join(',')).join(' | ')}: ${narrow.join(', ')}. ` +
+          'Pre-join across one (clusters), or leave a side out',
+      );
     }
   }
 

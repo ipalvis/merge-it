@@ -1,6 +1,6 @@
 # Merge It!
 
-Drop the pieces of a map into a box: U.S. states, or the countries of Europe or Latin America. Pieces that border each other on the real map stick together and snap into place. Assemble the whole map (all 48 contiguous states, 37 countries of Europe, or 24 of Latin America) before the pile overflows the red line. The map switch at the top changes maps (it turns into a dropdown when the names don't fit, as on narrow phones), and the ? button shows or hides a small preview of the finished map, with the current piece in gold. The codes on the pieces are sized and placed to fit inside each shape. Each map has a difficulty rating (see [docs/difficulty.md](docs/difficulty.md)).
+Drop the pieces of a map into a box: U.S. states, or the countries of Europe, South America or Central America. Pieces that border each other on the real map stick together and snap into place. Assemble the whole map before the pile overflows the red line. The map switch at the top changes maps (it turns into a dropdown when the names don't fit, as on narrow phones), and the ? button shows or hides a small preview of the finished map, with the current piece in gold. The codes on the pieces are sized and placed to fit inside each shape. Each map has a difficulty rating (see [docs/difficulty.md](docs/difficulty.md)).
 
 Built with plain JavaScript, [Matter.js](https://brm.io/matter-js/) for physics, and the Web Audio API for music and sound effects. [Vite](https://vite.dev/) bundles it.
 
@@ -17,7 +17,11 @@ Open `http://localhost:5173/?test=1` for **test mode**: only Colorado and Utah a
 
 **The Europe map** (the switch at the top, or `http://localhost:5173/?map=eu`): the EU's members plus the neighbors that fill out the map (Switzerland, Norway, the Western Balkans, Ukraine, Belarus, Moldova and the UK; 37 countries, Malta and Cyprus left out). Borders are the internationally recognised ones (Crimea is part of Ukraine). Two pairs join across the water, drawn as little bridges: Sweden and Denmark (the Øresund Bridge) and the UK and France (the Channel Tunnel); a piece whose partner isn't joined yet shows half a bridge pointing at it. Europe is taller than wide, so its box is narrower (371 instead of 600 logical px, same height) to fit the finished map the way the standard box fits the U.S. It has its own, calmer theme song, no tutorial, and its own best score. Combine with `&test=1` to deal only Spain and Portugal. Without `?map=`, the game opens on the last map played.
 
-**The Latin America map** (`?map=latam`): Mexico, Central America and South America (with Guyana, Suriname and French Guiana to fill out the map), plus Cuba and Hispaniola; 24 countries, the Falklands and the English- and Dutch-speaking Caribbean left out. Small countries ship pre-joined, so no piece is under the minimum size (Paraguay): Central America as one piece, Mexico with Cuba and Hispaniola (joined across the Yucatán Channel by a little bridge), Colombia with Ecuador, Argentina with Uruguay, and the three Guianas. So 11 pieces drop. Its box is 336 wide, fitted to its shape the way Europe's is. Combine with `&test=1` to deal only Paraguay and Bolivia.
+**The South America map** (`?map=sa`): the twelve countries of the mainland plus French Guiana (13; the Falklands left out). The three Guianas ship pre-joined, and Uruguay with Argentina, so no piece is under the minimum size; 10 pieces drop. Its box is 265 wide, fitted to its shape. Combine with `&test=1` to deal only Paraguay and Bolivia.
+
+**The Central America map** (`?map=central`): Mexico and the seven countries of Central America (the Caribbean islands are left out: they'd join only across narrow sea crossings). Belize ships pre-joined with Guatemala, and El Salvador with Honduras, so 6 pieces drop. Its box is 532 wide. Combine with `&test=1` to deal only Costa Rica and Panama.
+
+Both were split from a single Latin America map, where Central America joined South America only through Panama's narrow border with Colombia.
 
 ## Project structure
 
@@ -31,7 +35,7 @@ src/
   levels/
     index.js          finds every level folder, picks MAP (the URL's ?map=, else the last one played, else the
                       first), and loads only that level's map data
-    us/, eu/, latam/  one folder per level:
+    us/, eu/, sa/, central/  one folder per level:
       level.js        settings and wording: colors, pre-joined clusters, bonus divisions and regions, song, box width
       source.mjs      build recipe for map.json: boundary data, which regions, codes, islands, sea links
       map.json        generated map data (outlines, convex physics pieces, neighbors); don't hand-edit
@@ -67,9 +71,11 @@ docs/
 1. Make a folder in `src/levels/` named for the level's key (what `?map=` will use), e.g. `src/levels/jp/`.
 2. Write `source.mjs`, the recipe for its map data: which TopoJSON file to use, which regions to keep and the code each one shows, plus optionally a projection, island rules and links across water. `scripts/build-map.mjs` lists every option; `us/` and `eu/` are worked examples. Any TopoJSON with a region per shape works; the build script reads it from an npm package (e.g. `world-atlas`, `us-atlas`).
 3. Run `npm run build:map -- jp` to write `map.json`.
-4. Write `level.js` with its settings and wording: copy `latam/level.js` and change it, including `order` (its place on the map switch).
+4. Write `level.js` with its settings and wording: copy `sa/level.js` and change it, including `order` (its place on the map switch).
 5. Run `npm run check:levels`. It reports anything that would break play: regions that can never join the rest (add a link in `source.mjs`), regions missing from the color groups, clusters that don't touch, bonus groups or test ids naming regions that aren't on the map, and so on.
-   **Minimum piece size:** every piece must be at least as big as Paraguay is in Latin America (as drawn in the box). Smaller ones are too small to aim at reliably. Pre-join a small region with a neighbor in `clusters` until every piece passes; the check names each piece that's too small. The U.S. and Europe predate the rule and are exempt; new levels aren't.
+   It also enforces two design rules, so every piece can be dropped and joined reliably. The U.S. and Europe predate them and are exempt; new levels aren't:
+   - **Minimum piece size:** every piece must be at least as big as Paraguay was in the first Latin America map (570 square units of the box). Pre-join a small region with a neighbor in `clusters` until every piece passes; the check names each piece that's too small.
+   - **Minimum connection width:** the whole map must be completable using only connections at least 12 units wide (half the width of a minimum-size piece), so nothing depends on a sliver of border, or on a sea crossing (a bridge counts as 4.5). Narrower borders can exist, as long as the map doesn't need them. If it does, the check names the narrow connections: pre-join across one, or leave that part of the map out (the old Latin America map failed this at Panama, so it became two maps).
 6. Play it with `npm run dev` and `?map=jp` (`&test=1` deals only its test pair). The map switch picks it up on its own.
 7. Rate it with `npm run rate:levels -- jp` (10–15 minutes; needs Edge or Chrome installed). It plays the level with simulated players and writes `difficulty.json` with a rating from 1 to 5, mainly from how often a careful player completes the map. [docs/difficulty.md](docs/difficulty.md) explains the scale and what makes a level easier or harder. Rate it again after changing the level; `check:levels` warns when a rating is out of date.
 
