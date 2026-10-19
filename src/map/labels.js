@@ -2,7 +2,9 @@
  * Labels: each code is sized as large as its text box can be while staying entirely inside the region's main shape
  * (up to CFG.labelMax), so small regions get a small code instead of none. At that size it sits on the shape's
  * centroid when it fits there; odd shapes (Florida, Norway, Croatia) get it as near the centroid as it fits.
- * Sets st.label = { x, y, size, ox, oy }: draw at (x + ox * size, y + oy * size), centered, alphabetic baseline.
+ * Long, thin shapes whose code fits better along them (Chile, Cuba, Panama) get it turned that way.
+ * Sets st.label = { x, y, size, angle, ox, oy }: draw turned by angle about (x, y), at (ox * size, oy * size) from it,
+ * centered, alphabetic baseline.
  */
 import { CFG } from '../config.js';
 
@@ -97,7 +99,8 @@ function fit(poly, tw, th) {
     .filter(c => c.d >= deepest * 0.5)
     .sort((a, b) => b.d - a.d)
     .slice(0, 200);
-  const ok = (c, f) => rectFits(poly, c.x, c.y, (f * tw) / 2 + PAD, (f * th) / 2 + PAD);
+  // (the centre must be inside too: a box wholly outside the shape crosses no border either)
+  const ok = (c, f) => inside(poly, c.x, c.y) && rectFits(poly, c.x, c.y, (f * tw) / 2 + PAD, (f * th) / 2 + PAD);
   let best = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, size: 0 };
   for (const c of cands) {
     if (!ok(c, best.size)) continue; // can't beat the best so far
@@ -120,6 +123,27 @@ function fit(poly, tw, th) {
   for (let k = 0; k < 12; k++) ok(at((lo + hi) / 2), best.size) ? (lo = (lo + hi) / 2) : (hi = (lo + hi) / 2);
   return { ...at(lo), size: best.size };
 }
+/* Direction of a shape's long axis (radians, screen coordinates), turned so text along it reads left to right */
+function longAxis(poly) {
+  const n = poly.length,
+    mx = poly.reduce((t, p) => t + p.x, 0) / n,
+    my = poly.reduce((t, p) => t + p.y, 0) / n;
+  let sxx = 0,
+    syy = 0,
+    sxy = 0;
+  for (const p of poly) {
+    sxx += (p.x - mx) ** 2;
+    syy += (p.y - my) ** 2;
+    sxy += (p.x - mx) * (p.y - my);
+  }
+  const a = Math.atan2(2 * sxy, sxx - syy) / 2; // within -90°..90°
+  return a >= Math.PI / 2 - 1e-9 ? -Math.PI / 2 : a; // straight up reads bottom to top
+}
+const turn = (poly, a) => {
+  const c = Math.cos(a),
+    s = Math.sin(a);
+  return poly.map(p => ({ x: p.x * c + p.y * s, y: -p.x * s + p.y * c })); // by -a: text along a becomes level
+};
 export function fitLabels(states) {
   const m = document.createElement('canvas').getContext('2d');
   m.font = `800 100px ${LABEL_FONT}`;
@@ -131,8 +155,28 @@ export function fitLabels(states) {
       R = t.actualBoundingBoxRight / 100,
       A = t.actualBoundingBoxAscent / 100,
       D = t.actualBoundingBoxDescent / 100;
-    const f = fit(st.mainOutline, L + R, A + D);
-    // offsets that put the ink (not the em box) centred on the fitted point
-    st.label = { x: f.x, y: f.y, size: f.size, ox: (L - R) / 2, oy: (A - D) / 2 };
+    let f = { ...fit(st.mainOutline, L + R, A + D), angle: 0 };
+    // Long, thin or slanted shapes (Chile, Cuba, Panama): try the code along the shape's long axis, and a little either
+    // side of it. Turned only if level doesn't fit at all, or turned is clearly bigger.
+    if (f.size < CFG.labelMax) {
+      const axis = longAxis(st.mainOutline),
+        deg = Math.PI / 180;
+      // a steep shape (over 70°) gets a vertical code, reading bottom to top like map labels (or within 10° of it)
+      const tries =
+        Math.abs(axis) > 70 * deg ? [-90 * deg, -80 * deg, -100 * deg] : [axis, axis - 15 * deg, axis + 15 * deg];
+      let best = null;
+      for (const a of tries) {
+        if (Math.abs(a) < 20 * deg || Math.abs(a) > 100 * deg) continue; // under 20° looks like a mistake; past 100°, upside down
+        const r = fit(turn(st.mainOutline, a), L + R, A + D);
+        if (!best || r.size > best.size) best = { ...r, a };
+      }
+      if (best && best.size >= CFG.labelMin && (f.size < CFG.labelMin || best.size >= 1.3 * f.size)) {
+        const c = Math.cos(best.a),
+          s = Math.sin(best.a);
+        f = { x: best.x * c - best.y * s, y: best.x * s + best.y * c, size: best.size, angle: best.a }; // back to map space
+      }
+    }
+    // offsets that put the ink (not the em box) centred on the fitted point, along the code's own direction
+    st.label = { x: f.x, y: f.y, size: f.size, angle: f.angle, ox: (L - R) / 2, oy: (A - D) / 2 };
   }
 }

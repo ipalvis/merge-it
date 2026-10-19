@@ -30,7 +30,13 @@ export function drawState(c, st, fill, lw, label) {
   c.font = `800 ${L.size}px ${LABEL_FONT}`;
   c.textAlign = 'center';
   c.textBaseline = 'alphabetic';
-  c.fillText(st.id, L.x + L.ox * L.size, L.y + L.oy * L.size);
+  if (!L.angle) return c.fillText(st.id, L.x + L.ox * L.size, L.y + L.oy * L.size);
+  // turned along a long, thin shape (it turns with the piece too, since pieces are drawn in their own frame)
+  c.save();
+  c.translate(L.x, L.y);
+  c.rotate(L.angle);
+  c.fillText(st.id, L.ox * L.size, L.oy * L.size);
+  c.restore();
 }
 /* Sea crossings for the states in ids (one piece, drawn in map space), drawn as a little bridge: a light band with a
    dark outline. While the partner isn't joined, half a bridge sticks out from the coast toward it; once it is, the
