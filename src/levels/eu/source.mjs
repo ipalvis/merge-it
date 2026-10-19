@@ -1,5 +1,6 @@
 /* How map.json is built (by scripts/build-map.mjs; not part of the game bundle): Natural Earth 1:50m countries via
    world-atlas, projected with the EU's own Lambert azimuthal equal-area (centre 10°E 52°N, as in ETRS89-LAEA). */
+import { laea } from '../../../scripts/projections.mjs';
 
 /* Natural Earth name -> [code shown on the piece, display name].
    The EU's members plus their neighbors that fill out the map: Switzerland, Norway, the Western Balkans, Ukraine,
@@ -40,20 +41,6 @@ function crimeaToUkraine(topo, tc) {
   ua.mergeSelf = true; // dissolve the border between the mainland and Crimea
 }
 
-/* Lambert azimuthal equal-area, spherical. Scale 1000 puts the map at roughly the same pixel size as the US data,
-   so the same simplification tolerances work. y is flipped so north is up on screen. */
-function laea([lon, lat]) {
-  const r = Math.PI / 180,
-    l = (lon - 10) * r,
-    p = lat * r,
-    p0 = 52 * r;
-  const k = Math.sqrt(2 / (1 + Math.sin(p0) * Math.sin(p) + Math.cos(p0) * Math.cos(p) * Math.cos(l)));
-  return [
-    1000 * k * Math.cos(p) * Math.sin(l),
-    -1000 * k * (Math.cos(p0) * Math.sin(p) - Math.sin(p0) * Math.cos(p) * Math.cos(l)),
-  ];
-}
-
 export default {
   topo: 'world-atlas/countries-50m.json',
   object: 'countries',
@@ -67,7 +54,7 @@ export default {
   keepIslandFor: { UK: 0.05 }, // keeps Northern Ireland, the UK's land border with Ireland
   // Only mainland Europe: drops overseas parts (French Guiana, the Canaries, Svalbard, ...) before projecting
   region: ([lon, lat]) => lon > -12 && lon < 41 && lat > 34 && lat < 72,
-  project: laea,
+  project: laea(10, 52), // the EU's own (ETRS89-LAEA's centre); scale 1000 puts it at about the U.S. data's pixel size
   // Neighbors across water. Sweden reaches the mainland only by the Øresund Bridge (without it Norway, Sweden and
   // Finland could never join the rest), and Great Britain by the Channel Tunnel.
   links: [

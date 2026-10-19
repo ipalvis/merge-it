@@ -1,0 +1,54 @@
+{
+  "rating": 3,
+  "label": "Medium",
+  "range": [
+    3,
+    3.5
+  ],
+  "stats": {
+    "pieces": 20,
+    "regions": 24,
+    "fill": 0.22,
+    "mapHeight": 0.92,
+    "solidity": 0.71,
+    "widestPiece": 0.52,
+    "medianPiece": 0.13,
+    "neighbors": 3.2,
+    "deadEnds": 1,
+    "seaLinks": 2,
+    "boxW": 336
+  },
+  "sim": {
+    "aiming": {
+      "games": 128,
+      "wins": 25,
+      "winRate": 0.2,
+      "overflowRate": 0,
+      "stuckRate": 0.8,
+      "assembled": 0.7,
+      "assembledSE": 0.01,
+      "leftover": 1.95,
+      "joinOnLanding": 0.5,
+      "pressure": 0.54,
+      "shakes": 25.09,
+      "blends": 2.92,
+      "minutes": 1.26
+    },
+    "random": {
+      "games": 128,
+      "wins": 9,
+      "winRate": 0.07,
+      "overflowRate": 0,
+      "stuckRate": 0.93,
+      "assembled": 0.64,
+      "assembledSE": 0.01,
+      "leftover": 2.28,
+      "joinOnLanding": 0.3,
+      "pressure": 0.54,
+      "shakes": 26.97,
+      "blends": 2.97,
+      "minutes": 1.27
+    }
+  },
+  "inputs": "d9c6b8a0b270"
+}

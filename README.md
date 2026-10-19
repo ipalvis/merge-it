@@ -1,6 +1,6 @@
 # Merge It!
 
-Drop the pieces of a map into a box: U.S. states or European countries. Pieces that border each other on the real map stick together and snap into place. Assemble the whole map (all 48 contiguous states, or 37 countries of Europe) before the pile overflows the red line. The U.S. | Europe switch at the top changes maps, and the ? button shows or hides a small preview of the finished map, with the current piece in gold. The codes on the pieces are sized and placed to fit inside each shape.
+Drop the pieces of a map into a box: U.S. states, or the countries of Europe or Latin America. Pieces that border each other on the real map stick together and snap into place. Assemble the whole map (all 48 contiguous states, 37 countries of Europe, or 24 of Latin America) before the pile overflows the red line. The map switch at the top changes maps (it turns into a dropdown when the names don't fit, as on narrow phones), and the ? button shows or hides a small preview of the finished map, with the current piece in gold. The codes on the pieces are sized and placed to fit inside each shape. Each map has a difficulty rating (see [docs/difficulty.md](docs/difficulty.md)).
 
 Built with plain JavaScript, [Matter.js](https://brm.io/matter-js/) for physics, and the Web Audio API for music and sound effects. [Vite](https://vite.dev/) bundles it.
 
@@ -17,6 +17,8 @@ Open `http://localhost:5173/?test=1` for **test mode**: only Colorado and Utah a
 
 **The Europe map** (the switch at the top, or `http://localhost:5173/?map=eu`): the EU's members plus the neighbors that fill out the map (Switzerland, Norway, the Western Balkans, Ukraine, Belarus, Moldova and the UK; 37 countries, Malta and Cyprus left out). Borders are the internationally recognised ones (Crimea is part of Ukraine). Two pairs join across the water, drawn as little bridges: Sweden and Denmark (the Øresund Bridge) and the UK and France (the Channel Tunnel); a piece whose partner isn't joined yet shows half a bridge pointing at it. Europe is taller than wide, so its box is narrower (371 instead of 600 logical px, same height) to fit the finished map the way the standard box fits the U.S. It has its own, calmer theme song, no tutorial, and its own best score. Combine with `&test=1` to deal only Spain and Portugal. Without `?map=`, the game opens on the last map played.
 
+**The Latin America map** (`?map=latam`): Mexico, Central America and South America (with Guyana, Suriname and French Guiana to fill out the map), plus Cuba and Hispaniola; 24 countries, the Falklands and the English- and Dutch-speaking Caribbean left out. Cuba and Hispaniola ship pre-joined as one piece, "The Greater Antilles", which joins Mexico across the Yucatán Channel (a little bridge), and Guyana, Suriname and French Guiana ship pre-joined as "The Guianas", so 20 pieces drop. It was built to rate 3, Medium: the careful simulated player completes it about one game in four. Its box is 336 wide, fitted to its shape the way Europe's is. Combine with `&test=1` to deal only Uruguay and Argentina.
+
 ## Project structure
 
 ```
@@ -29,7 +31,7 @@ src/
   levels/
     index.js          finds every level folder, picks MAP (the URL's ?map=, else the last one played, else the
                       first), and loads only that level's map data
-    us/, eu/          one folder per level:
+    us/, eu/, latam/  one folder per level:
       level.js        settings and wording: colors, pre-joined clusters, bonus divisions and regions, song, box width
       source.mjs      build recipe for map.json: boundary data, which regions, codes, islands, sea links
       map.json        generated map data (outlines, convex physics pieces, neighbors); don't hand-edit
@@ -55,6 +57,7 @@ scripts/
   check-levels.mjs    checks every level's settings against its map (runs as part of npm run build)
   rate-levels.mjs     difficulty rating: measures each level and plays it with simulated players (npm run rate:levels)
   difficulty.mjs      the difficulty scale, shared by the two above
+  projections.mjs     map projections for level recipes (Lambert azimuthal equal-area)
 docs/
   difficulty.md       what the difficulty ratings mean, how they're measured, and what makes a level harder
 ```

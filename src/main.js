@@ -59,23 +59,27 @@ $('restartBtn').addEventListener('click', () => {
 });
 $('endlessBtn').addEventListener('click', goEndless);
 document.title += ` ${MAP.name}`;
-/* Map switch: one button per level; choosing another reloads the page on that map (keeping test mode, if on) */
+/* Map switch: one button per level; choosing another reloads the page on that map (keeping test mode, if on).
+   When the buttons don't fit the top bar, a dropdown of the same maps stands in for them (see fitCanvas). */
+const goToLevel = key => {
+  if (key === MAP.key) return;
+  try {
+    localStorage.setItem(LEVEL_KEY, key);
+  } catch (e) {}
+  const url = new URL(location.href);
+  url.searchParams.set('map', key);
+  location.assign(url);
+};
 for (const L of Object.values(LEVELS)) {
   const b = document.createElement('button');
   b.type = 'button';
   b.textContent = L.name;
   b.setAttribute('aria-pressed', L.key === MAP.key);
-  b.addEventListener('click', () => {
-    if (L.key === MAP.key) return;
-    try {
-      localStorage.setItem(LEVEL_KEY, L.key);
-    } catch (e) {}
-    const url = new URL(location.href);
-    url.searchParams.set('map', L.key);
-    location.assign(url);
-  });
-  $('levelSwitch').appendChild(b);
+  b.addEventListener('click', () => goToLevel(L.key));
+  $('levelSwitch').insertBefore(b, $('levelPick'));
+  $('levelSelect').add(new Option(L.name, L.key, false, L.key === MAP.key));
 }
+$('levelSelect').addEventListener('change', e => goToLevel(e.target.value));
 if (TEST_IDS) document.title += ` (Test: ${TEST_IDS.length} ${MAP.units})`;
 
 fitCanvas();

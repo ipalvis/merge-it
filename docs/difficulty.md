@@ -4,10 +4,11 @@ Every level has a difficulty rating from 1 to 5, in half steps. It's stored in `
 
 ## Current ratings
 
-| Level  | Rating   | Could be | Map completed (careful player) | Fill | Map assembled, on average | Box overflowed |
-| ------ | -------- | -------- | ------------------------------ | ---- | ------------------------- | -------------- |
-| U.S.   | 5 Expert | 4.5–5    | 0 of 32 games                  | 0.52 | 34%                       | 28% of games   |
-| Europe | 4.5 Hard | 4–4.5    | 0 of 32 games                  | 0.33 | 60%                       | never          |
+| Level         | Rating   | Could be | Map completed (careful player) | Fill | Map assembled, on average | Box overflowed |
+| ------------- | -------- | -------- | ------------------------------ | ---- | ------------------------- | -------------- |
+| U.S.          | 5 Expert | 4.5–5    | 0 of 32 games                  | 0.52 | 34%                       | 28% of games   |
+| Europe        | 4.5 Hard | 4–4.5    | 0 of 32 games                  | 0.33 | 60%                       | never          |
+| Latin America | 3 Medium | 3–3.5    | 25 of 128 games (20%)          | 0.22 | 70%                       | never          |
 
 "Could be" is the range the rating would take at either end of the win rate's 95% interval: how far the luck of the games could move it. "Fill" is defined below.
 
@@ -83,6 +84,28 @@ Most unfinished games end with a few separate pieces lying apart in the pile, no
 - more neighbors per piece;
 - compact shapes;
 - room in the box for pieces to land on what they border.
+
+### Building a level to a rating: Latin America
+
+Latin America was built to rate 3, completed about one game in four. Each step below was 64 games of the careful player (128 for the last):
+
+| Version                                             | Pieces | Sea crossings | Fill | Completed |
+| --------------------------------------------------- | ------ | ------------- | ---- | --------- |
+| South America only (13 countries)                   | 13     | 0             | 0.41 | 75%       |
+| + Mexico and Central America (21)                   | 21     | 0             | 0.22 | 36%       |
+| + Cuba, Haiti, Dominican Republic, Puerto Rico      | 25     | 3             | 0.22 | 13%       |
+| Haiti and the Dominican Republic pre-joined         | 24     | 3             | 0.22 | 13%       |
+| Puerto Rico left out                                | 23     | 2             | 0.22 | 9%        |
+| Cuba and Hispaniola pre-joined as one piece         | 22     | 1             | 0.22 | 16%       |
+| **+ the Guianas pre-joined (the level, 128 games)** | **20** | **1**         | 0.22 | **20%**   |
+| the same in a wider box (360)                       | 20     | 1             | 0.21 | 16%       |
+
+What it shows:
+
+- **The number of pieces matters more than fill.** South America alone was the fullest box here (0.41) and the easiest map. Adding eight small Central American pieces halved its completion rate, even though fill fell to 0.22.
+- **Sea crossings are hard.** A piece that joins only across water has to land with its bridge end on the right coast, a small target. One crossing cost about as much as adding several land pieces.
+- **Pre-joining pieces is the finest tuning knob.** Each cluster removes drops and, for islands, crossings, without changing what the map shows.
+- **The box width did little here.** Within a fill of 0.21–0.22, widening the box made no difference beyond the games' luck.
 
 ### Other things measured
 

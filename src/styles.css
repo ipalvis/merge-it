@@ -684,6 +684,42 @@ button:focus-visible {
   padding: 0.3em 0.85em;
   background: transparent;
   color: var(--ink);
+  white-space: nowrap;
+}
+/* When the buttons don't fit (fitCanvas adds .compact): one filled pill with the current map, opening a list */
+.levels .pick,
+.levels.compact button {
+  display: none;
+}
+.levels.compact .pick {
+  display: flex;
+  position: relative;
+  align-items: center;
+}
+.levels select {
+  appearance: none;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  padding: 0.3em 2em 0.3em 0.85em;
+  border: 0;
+  border-radius: 999px;
+  background: var(--button);
+  color: var(--button-ink);
+  cursor: pointer;
+}
+.levels .pick svg {
+  position: absolute;
+  right: 0.7em;
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: none;
+  stroke: var(--button-ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
 }
 .levels button:hover {
   background: var(--ocean-line);

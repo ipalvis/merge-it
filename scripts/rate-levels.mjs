@@ -362,7 +362,8 @@ if (rescore) {
 const server = await createServer({
   root: fileURLToPath(ROOT),
   logLevel: 'error',
-  server: { port: 5287, strictPort: false },
+  // no file watching or hot reload: editing the game mid-run would reload the page under the simulation
+  server: { port: 5287, strictPort: false, hmr: false, watch: null },
 });
 await server.listen();
 const base = server.resolvedUrls.local[0];

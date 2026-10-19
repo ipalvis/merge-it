@@ -41,6 +41,11 @@ export function fitCanvas() {
     rb.classList.remove('beside');
     pb.classList.remove('beside');
   }
+  // The map switch: its buttons if they fit in one line of the top bar, else the dropdown of maps
+  const levels = document.getElementById('levelSwitch'),
+    bar = levels.parentElement;
+  levels.classList.remove('compact');
+  if (bar.scrollWidth > bar.clientWidth + 1) levels.classList.add('compact');
   if (margin >= 126) {
     if (bk.parentElement !== wrap) wrap.appendChild(bk);
     bk.classList.add('beside');
