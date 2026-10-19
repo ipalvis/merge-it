@@ -17,6 +17,27 @@ const COLORS = new Set(read('../src/styles.css').match(/--c\d+(?=:)/g)).size;
 const SONGS = [...read('../src/audio/sound.js').matchAll(/^ {4}(\w+): \{/gm)].map(m => m[1]);
 // Regions the scripted tutorial uses (game/tutorial.js), so a level with `tutorial: true` must have them
 const TUTORIAL_IDS = ['CO', 'WY', 'UT', 'MT', 'AZ', 'NM'];
+/* Minimum piece size: every piece (a region, or a pre-joined cluster) must be at least this big as drawn in the game,
+   in the box's own units (logical px², the same in every level). Smaller pieces are too small to aim at reliably and
+   to show a code. It's Paraguay's size in Latin America (579) when the rule was set, rounded down. The two original
+   maps came first and keep their smaller pieces (Moldova, New Jersey); every new level has to follow it. */
+const MIN_PIECE_AREA = 570,
+  SIZE_EXEMPT = new Set(['us', 'eu']);
+// The map's scale in the box (map/geometry.js): it fills CFG.mapFill of the box width, or CFG.mapMaxH of its height
+const CONFIG = read('../src/config.js'),
+  setting = re => +CONFIG.match(re)[1],
+  MAP_FILL = setting(/mapFill: ([\d.]+)/),
+  MAP_MAX_H = setting(/mapMaxH: ([\d.]+)/),
+  STD_BOX_W = setting(/STD_BOX_W = (\d+)/);
+const polyArea = pts => {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x0, y0] = pts[i],
+      [x1, y1] = pts[(i + 1) % pts.length];
+    a += x0 * y1 - x1 * y0;
+  }
+  return Math.abs(a) / 2;
+};
 
 /* Do these ids form one connected piece using only each other as stepping stones? Returns the separate parts. */
 function parts(ids, nb) {
@@ -125,6 +146,25 @@ for (const key of keys) {
     if (p.length > 1) err.push(`cluster "${c.name}" doesn't hold together: ${p.map(x => x.join(',')).join(' | ')}`);
   }
 
+  // Every piece at least the minimum size (see MIN_PIECE_AREA)
+  if (!SIZE_EXEMPT.has(key)) {
+    const S = Math.min((MAP_FILL * (L.boxW ?? STD_BOX_W)) / D.w, MAP_MAX_H / D.h),
+      regionArea = Object.fromEntries(
+        (D.states ?? []).map(s => [s.id, s.parts.reduce((t, p) => t + polyArea(p.outline), 0) * S * S]),
+      );
+    const pieces = [
+      ...(L.clusters ?? []).map(c => [`"${c.name}"`, c.states]),
+      ...ids.filter(i => !inCluster.has(i)).map(i => [i, [i]]),
+    ];
+    for (const [name, list] of pieces) {
+      const a = list.reduce((t, i) => t + (regionArea[i] ?? 0), 0);
+      if (a < MIN_PIECE_AREA)
+        err.push(
+          `piece ${name} is ${Math.round((100 * a) / MIN_PIECE_AREA)}% of the minimum piece size: pre-join it with a neighbor (clusters)`,
+        );
+    }
+  }
+
   // Bonus groups: names are how the game remembers which were built, so they must be unique
   const seenNames = new Set();
   for (const [kind, sets] of [
@@ -135,6 +175,10 @@ for (const key of keys) {
       if (seenNames.has(name)) err.push(`bonus group "${name}" is named twice`);
       seenNames.add(name);
       unknown(`${kind} "${name}"`, list);
+      if (list.length && inCluster.has(list[0]) && list.every(i => inCluster.get(i) === inCluster.get(list[0])))
+        err.push(
+          `${kind} "${name}" ships pre-joined (cluster "${inCluster.get(list[0])}"), so it would score for free`,
+        );
       if (
         parts(
           list.filter(i => idSet.has(i)),
@@ -155,6 +199,14 @@ for (const key of keys) {
       ).length > 1
     )
       err.push(`testIds ${L.testIds} don't all touch`);
+    // (test mode deals only pieces made wholly of test ids, so each must be its own piece or a whole cluster of them)
+    const testPieces = new Set(L.testIds.map(i => inCluster.get(i) ?? i));
+    for (const c of L.clusters ?? [])
+      if (c.states.some(i => L.testIds.includes(i)) && !c.states.every(i => L.testIds.includes(i)))
+        err.push(
+          `testIds: ${c.states.filter(i => L.testIds.includes(i))} ships pre-joined in "${c.name}", so test mode would never deal it`,
+        );
+    if (testPieces.size < 2) err.push('testIds: all in one piece, so test mode would have nothing to join');
   }
   if (L.tutorial) unknown('tutorial (game/tutorial.js uses these)', TUTORIAL_IDS);
 

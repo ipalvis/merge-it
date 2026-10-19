@@ -4,11 +4,11 @@ Every level has a difficulty rating from 1 to 5, in half steps. It's stored in `
 
 ## Current ratings
 
-| Level         | Rating   | Could be | Map completed (careful player) | Fill | Map assembled, on average | Box overflowed |
-| ------------- | -------- | -------- | ------------------------------ | ---- | ------------------------- | -------------- |
-| U.S.          | 5 Expert | 4.5–5    | 0 of 32 games                  | 0.52 | 34%                       | 28% of games   |
-| Europe        | 4.5 Hard | 4–4.5    | 0 of 32 games                  | 0.33 | 60%                       | never          |
-| Latin America | 3 Medium | 3–3.5    | 25 of 128 games (20%)          | 0.22 | 70%                       | never          |
+| Level         | Rating      | Could be | Map completed (careful player) | Fill | Map assembled, on average | Box overflowed |
+| ------------- | ----------- | -------- | ------------------------------ | ---- | ------------------------- | -------------- |
+| U.S.          | 5 Expert    | 4.5–5    | 0 of 32 games                  | 0.52 | 34%                       | 28% of games   |
+| Europe        | 4.5 Hard    | 4–4.5    | 0 of 32 games                  | 0.33 | 60%                       | never          |
+| Latin America | 1.5 Relaxed | 1.5–2    | 74 of 128 games (58%)          | 0.22 | 81%                       | never          |
 
 "Could be" is the range the rating would take at either end of the win rate's 95% interval: how far the luck of the games could move it. "Fill" is defined below.
 
@@ -85,20 +85,29 @@ Most unfinished games end with a few separate pieces lying apart in the pile, no
 - compact shapes;
 - room in the box for pieces to land on what they border.
 
+### Minimum piece size
+
+Every piece (a region, or a pre-joined cluster) must be at least as big as Paraguay is in Latin America, as drawn in the box: 570 square units of the box's own size, the same in every level. Smaller pieces are too small to aim at reliably, or to show a code. `check-levels` enforces it and names each piece that's too small; pre-join it with a neighbor in `clusters`. The U.S. and Europe predate the rule and are exempt, to keep them as they are; every new level has to follow it.
+
+The rule limits how hard a map can be. With every piece above a fixed size, a map's area in the box caps how many pieces it can have, and the piece count is the main thing that decides how often a map is completed (below). A map meant to be hard needs a lot of land made of mid-sized regions, not a few big countries with small ones around them.
+
 ### Building a level to a rating: Latin America
 
-Latin America was built to rate 3, completed about one game in four. Each step below was 64 games of the careful player (128 for the last):
+Latin America was first built to rate 3, completed about one game in four. Each step below was 64 games of the careful player (128 for the 20-piece version and the level):
 
-| Version                                             | Pieces | Sea crossings | Fill | Completed |
-| --------------------------------------------------- | ------ | ------------- | ---- | --------- |
-| South America only (13 countries)                   | 13     | 0             | 0.41 | 75%       |
-| + Mexico and Central America (21)                   | 21     | 0             | 0.22 | 36%       |
-| + Cuba, Haiti, Dominican Republic, Puerto Rico      | 25     | 3             | 0.22 | 13%       |
-| Haiti and the Dominican Republic pre-joined         | 24     | 3             | 0.22 | 13%       |
-| Puerto Rico left out                                | 23     | 2             | 0.22 | 9%        |
-| Cuba and Hispaniola pre-joined as one piece         | 22     | 1             | 0.22 | 16%       |
-| **+ the Guianas pre-joined (the level, 128 games)** | **20** | **1**         | 0.22 | **20%**   |
-| the same in a wider box (360)                       | 20     | 1             | 0.21 | 16%       |
+| Version                                               | Pieces | Sea crossings | Fill | Completed |
+| ----------------------------------------------------- | ------ | ------------- | ---- | --------- |
+| South America only (13 countries)                     | 13     | 0             | 0.41 | 75%       |
+| + Mexico and Central America (21)                     | 21     | 0             | 0.22 | 36%       |
+| + Cuba, Haiti, Dominican Republic, Puerto Rico        | 25     | 3             | 0.22 | 13%       |
+| Haiti and the Dominican Republic pre-joined           | 24     | 3             | 0.22 | 13%       |
+| Puerto Rico left out                                  | 23     | 2             | 0.22 | 9%        |
+| Cuba and Hispaniola pre-joined as one piece           | 22     | 1             | 0.22 | 16%       |
+| + the Guianas pre-joined (rated 3)                    | 20     | 1             | 0.22 | 20%       |
+| the same in a wider box (360)                         | 20     | 1             | 0.21 | 16%       |
+| **minimum piece size applied (the level, rated 1.5)** | **11** | **0**         | 0.22 | **58%**   |
+
+The 20-piece version had ten pieces under the minimum size: the seven Central American countries, the islands, Uruguay and Ecuador. Pre-joining them leaves 11 pieces, and the islands' crossing to Mexico is now inside the Mexico piece. Under the rule, 11 is about as many pieces as this map allows: Central America passes only as one piece, the Guianas only as all three, and the islands' only neighbor is Mexico.
 
 What it shows:
 

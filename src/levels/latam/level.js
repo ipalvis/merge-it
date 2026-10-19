@@ -1,7 +1,7 @@
 /* The Latin America map (?map=latam): Mexico, Central America, South America (plus French Guiana, Guyana and Suriname
-   to fill out the map) and Cuba, Hispaniola and Puerto Rico. The islands join by sea crossings, drawn as little
-   bridges: Cuba to Mexico and to Haiti, the Dominican Republic to Puerto Rico. Map data: source.mjs -> map.json.
-   Tuned to a difficulty of 3 (the careful simulated player completes it about one game in four; docs/difficulty.md). */
+   to fill out the map) and Cuba and Hispaniola. Cuba joins Mexico and Haiti by sea crossings, drawn as little bridges.
+   Small countries ship pre-joined so no piece is under the minimum size (scripts/check-levels.mjs), which leaves 11
+   pieces; its difficulty rating is in difficulty.json (docs/difficulty.md). Map data: source.mjs -> map.json. */
 
 // prettier-ignore
 export default {
@@ -11,7 +11,7 @@ export default {
   goal: 'Latin America',
   tagline: 'Drop the countries of Latin America into the box. Neighbors stick together. Build the map from Mexico and the Caribbean to Patagonia.',
   tutorial: false,                    // the tutorial is scripted around U.S. states
-  testIds: ['UY', 'AR'],
+  testIds: ['PY', 'BO'],
   song: 'bright',
   boxW: 336,                          // taller than wide: this fits it the way Europe's 371 fits Europe
   // Color buckets (index = CSS var --cN); no two neighbors share one
@@ -24,16 +24,20 @@ export default {
     ['EC','UY','BZ','PA'],                                        // c5 (gray)
     ['GF','SV']                                                   // c6 (pink)
   ],
-  /* Neighbors that ship pre-joined: the islands as one piece, Cuba bridged to Hispaniola (Haiti and the Dominican
-     Republic), so they need only one sea crossing, to Mexico; and the three small Guianas */
+  /* Neighbors that ship pre-joined, so no piece is smaller than the minimum (Paraguay; scripts/check-levels.mjs):
+     Central America as one piece; the islands (Cuba bridged to Hispaniola) with Mexico, their only neighbor; Uruguay
+     and Ecuador with a bigger neighbor each; and the three Guianas */
   clusters: [
-    { name:'The Greater Antilles', states:['CU','HT','DO'] },
+    { name:'Central America', states:['GT','BZ','SV','HN','NI','CR','PA'] },
+    { name:'Mexico and the Greater Antilles', states:['MX','CU','HT','DO'] },
+    { name:'Colombia and Ecuador', states:['CO','EC'] },
+    { name:'Argentina and Uruguay', states:['AR','UY'] },
     { name:'The Guianas', states:['GY','SR','GF'] }
   ],
   /* Bonus points the first time each is assembled in a round */
   divisions: {
-    "Central America":["BZ","GT","HN","SV","NI","CR","PA"], "the Southern Cone":["AR","CL","PY","UY"],
-    "Gran Colombia":["CO","EC","VE","PA"], "the Andean Community":["BO","CO","EC","PE"], "Mercosur's founders":["AR","BR","PY","UY"]
+    "the Southern Cone":["AR","CL","PY","UY"], "Gran Colombia":["CO","EC","VE","PA"],
+    "the Andean Community":["BO","CO","EC","PE"], "Mercosur's founders":["AR","BR","PY","UY"]
   },
   regions: {
     "the Andes":["VE","CO","EC","PE","BO","CL","AR"],
