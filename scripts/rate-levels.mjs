@@ -146,6 +146,9 @@ async function play({ seed, player }) {
     bank: await import('/src/game/bank.js'),
     cfg: await import('/src/config.js'),
     geo: await import('/src/map/geometry.js'),
+    world: await import('/src/physics/world.js'),
+    // (any copy of Matter will do for checking overlaps: its collision functions work on any bodies)
+    Matter: (await import('/node_modules/.vite/deps/matter-js.js')).default,
   });
   const { G, cfg, geo } = M,
     { BOX, CFG } = cfg;
@@ -316,6 +319,23 @@ async function play({ seed, player }) {
     if (p.isActive && p.bodyA.stateId && p.bodyB.stateId && p.bodyA.parent !== p.bodyB.parent)
       if (geo.STATES[p.bodyA.stateId].stickTo.has(p.bodyB.stateId))
         blockedAtEnd.add([p.bodyA.parent.id, p.bodyB.parent.id].sort().join('|'));
+  // physics faults at the end: pieces sunk into another piece or a wall (deeper than a merge's snap tolerance), and
+  // pieces outside the box
+  const sunkGroups = G.groups.filter(g => M.world.overlapDepth(g, [g]) > CFG.snapTolerance),
+    sunk = sunkGroups.length,
+    // ...and whether a bridge is in it: a sunk piece with a bridge in the overlap
+    sunkBridge = sunkGroups.filter(g =>
+      g.parts.slice(1).some(a =>
+        G.groups
+          .filter(o => o !== g)
+          .flatMap(o => o.parts.slice(1))
+          .concat(G.walls)
+          .some(b => (a.bridge || b.bridge) && M.Matter.Collision.collides(a, b)?.depth > CFG.snapTolerance),
+      ),
+    ).length,
+    outside = G.groups.filter(
+      g => g.bounds.min.x < BOX.l - 2 || g.bounds.max.x > BOX.r + 2 || g.bounds.max.y > BOX.b + 2,
+    ).length;
   G.state = 'over'; // stop here; the next game starts fresh
   return {
     result,
@@ -331,6 +351,9 @@ async function play({ seed, player }) {
     looseAtDeckEnd,
     looseAtEnd: G.groups.length,
     blockedAtEnd: blockedAtEnd.size,
+    sunk,
+    sunkBridge,
+    outside,
     seconds: (sim.now() - start) / 1000,
   };
 }
@@ -415,8 +438,17 @@ try {
         shakes: r2(avg(runs.map(r => r.shakes))),
         blends: r2(avg(runs.map(r => r.blends))),
         minutes: r2(avg(runs.map(r => r.seconds)) / 60),
+        // physics faults, totals over all games (should be 0): pieces sunk into another piece or a wall, pieces
+        // outside the box
+        sunk: runs.reduce((t, r) => t + r.sunk, 0),
+        sunkAtBridge: runs.reduce((t, r) => t + r.sunkBridge, 0), // ...of those, with a bridge in the overlap
+        outside: runs.reduce((t, r) => t + r.outside, 0),
       };
-      process.stdout.write(`  ${key} ${player}: ${n('win')}/${games} won\n`);
+      const s = sim[player],
+        faults = s.sunk + s.outside;
+      process.stdout.write(
+        `  ${key} ${player}: ${n('win')}/${games} won${faults ? ` | PHYSICS FAULTS: ${s.sunk} pieces sunk into others or a wall (${s.sunkAtBridge} at a bridge), ${s.outside} outside the box` : ''}\n`,
+      );
     }
     await page.close();
     const out = { ...rate(sim, stats), stats, sim, inputs: inputsHash(key) };

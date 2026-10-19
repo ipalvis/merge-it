@@ -44,6 +44,79 @@ for (const { a, b, pa, pb } of DATA.links ?? []) {
   STATES[a].crossings.push({ to: b, from: A, at: B });
   STATES[b].crossings.push({ to: a, from: B, at: A });
 }
+/* Bridges across water for the states in ids (one piece; a Set): half a bridge from each coast whose partner isn't
+   in the piece, reaching toward it, and a full span (once) for each crossing whose partner is, resting a little way
+   onto both coasts. Each is a gentle arch, a quadratic curve from p0 to p1 bent toward c. Drawing (render.js) and
+   physics (bridgeChunks) both use this, so the solid bridge is exactly where the drawn one is. */
+const BRIDGE_BOW = 0.12; // how far the middle bends to one side, as a share of the length
+export function bridgesOf(ids) {
+  const out = [];
+  for (const id of ids)
+    for (const x of STATES[id].crossings) {
+      const dx = x.at.x - x.from.x,
+        dy = x.at.y - x.from.y,
+        d = Math.hypot(dx, dy) || 1,
+        ux = dx / d,
+        uy = dy / d,
+        e = CFG.crossingStub / 2.5;
+      let p0, p1;
+      if (!ids.has(x.to))
+        ((p0 = { x: x.from.x - ux * 2, y: x.from.y - uy * 2 }),
+          (p1 = { x: x.from.x + ux * CFG.crossingStub, y: x.from.y + uy * CFG.crossingStub }));
+      else if (id < x.to)
+        ((p0 = { x: x.from.x - ux * e, y: x.from.y - uy * e }), (p1 = { x: x.at.x + ux * e, y: x.at.y + uy * e }));
+      else continue;
+      const len = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1,
+        bow = len * BRIDGE_BOW;
+      out.push({
+        state: id,
+        p0,
+        p1,
+        len,
+        c: { x: (p0.x + p1.x) / 2 - ((p1.y - p0.y) / len) * bow, y: (p0.y + p1.y) / 2 + ((p1.x - p0.x) / len) * bow },
+      });
+    }
+  return out;
+}
+/* A point t (0..1) along a bridge's arch, and the direction it runs there */
+export function archAt(b, t) {
+  const u = 1 - t;
+  return {
+    x: u * u * b.p0.x + 2 * u * t * b.c.x + t * t * b.p1.x,
+    y: u * u * b.p0.y + 2 * u * t * b.c.y + t * t * b.p1.y,
+    tx: 2 * u * (b.c.x - b.p0.x) + 2 * t * (b.p1.x - b.c.x),
+    ty: 2 * u * (b.c.y - b.p0.y) + 2 * t * (b.p1.y - b.c.y),
+  };
+}
+/* Solid bridges: each arch as a few short straight sections, a deck wide (convex, as Matter.js needs), overlapping a
+   little at the joints so the deck has no gaps. They belong to the state they start from, so touching a half bridge
+   counts as touching that state. */
+export function bridgeChunks(ids) {
+  const hw = CFG.crossingWidth / 2;
+  return bridgesOf(ids).flatMap(b => {
+    const n = Math.max(2, Math.ceil(b.len / 6)),
+      pts = Array.from({ length: n + 1 }, (_, i) => archAt(b, i / n));
+    return pts.slice(1).map((q, i) => {
+      const p = pts[i],
+        d = Math.hypot(q.x - p.x, q.y - p.y) || 1,
+        ax = (q.x - p.x) / d,
+        ay = (q.y - p.y) / d,
+        o = i === 0 ? 0 : hw * 0.5, // overlap the previous section
+        s = { x: p.x - ax * o, y: p.y - ay * o };
+      return {
+        state: b.state,
+        bridge: true,
+        verts: [
+          { x: s.x - ay * hw, y: s.y + ax * hw },
+          { x: q.x - ay * hw, y: q.y + ax * hw },
+          { x: q.x + ay * hw, y: q.y - ax * hw },
+          { x: s.x + ay * hw, y: s.y - ax * hw },
+        ],
+        area: (d + o) * hw * 2,
+      };
+    });
+  });
+}
 /* Collision chunks: each state's convex pieces, in map space. */
 for (const s of Object.values(STATES))
   s.chunks = s.parts.flatMap(part =>
@@ -140,16 +213,8 @@ export function makePiece(states, name) {
   };
   // Spin about the centre of the smallest circle around the piece, so the arrow ring hugs it at both ends.
   // (Spinning about the area-weighted centre left long, lopsided pieces like Norway with a big gap on one side.)
-  // (The ring also takes in the tip of any sea-crossing stub, so the stub never pokes out of it.)
-  const tips = states.flatMap(id =>
-    STATES[id].crossings
-      .filter(x => !states.includes(x.to))
-      .map(x => {
-        const d = Math.hypot(x.at.x - x.from.x, x.at.y - x.from.y) || 1,
-          L = CFG.crossingStub + CFG.crossingWidth / 2 + 1; // plus the rounded end
-        return { x: x.from.x + ((x.at.x - x.from.x) / d) * L, y: x.from.y + ((x.at.y - x.from.y) / d) * L };
-      }),
-  );
+  // (The ring also takes in its bridges, corners and all, so a bridge never pokes out of it.)
+  const tips = bridgeChunks(new Set(states)).flatMap(ch => ch.verts);
   const { x, y, r: R } = enclosingCircle([...pts, ...tips]),
     c = { x, y };
   return { name, states, bb, pts, c, R };

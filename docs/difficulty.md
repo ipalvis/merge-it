@@ -48,7 +48,8 @@ Besides wins, `difficulty.json` records:
 - how often a drop joins something as it lands;
 - the highest the settled pile got;
 - how often the box overflowed;
-- the shakes and blends used.
+- the shakes and blends used;
+- physics faults, as totals over all games: pieces that ended a game sunk into another piece or a wall (and how many of those were at a bridge), and pieces that ended up outside the box. These should stay near 0. A few happen on every map with walls and rigid bodies (Europe had 2 or so per 24 games before bridges were solid), and `rate-levels` prints them so a change that makes them common shows up.
 
 ## What makes a level harder
 
@@ -94,7 +95,7 @@ Three rules make sure every piece can be dropped and joined reliably. Sizes are 
 - **Minimum piece size** (maps of more than 12 regions). Every piece (a region, or a pre-joined cluster) must be at least as big as Uruguay is in South America: 430 square units. Smaller pieces are too small to aim at reliably, or to show a code. Pre-join a small one with a neighbor in `clusters`.
 - **Minimum connection width.** The whole map must be completable using only connections at least 12 units wide (half the width of a minimum-size piece), where a connection is the border two pieces share, or a bridge across water. A narrow border can exist, as long as the map doesn't need it: Chile–Peru in South America is 9 wide, but Chile also joins Bolivia and Argentina along wide borders. When the map does need one, pre-join across it, or leave a side out.
 
-How joining works matters here. Two neighbors join wherever they touch, not only along their shared border, and a bridge isn't solid: pieces joined by one join wherever they touch too. The width rule is about what players see. They aim for the border, and a sliver like Panama's looks unreachable. A bridge counts because it shows exactly where the two pieces belong.
+How joining works matters here. Two neighbors join wherever they touch, not only along their shared border, and that includes pieces joined by a bridge. The width rule is about what players see. They aim for the border, and a sliver like Panama's looks unreachable. A bridge counts because it shows exactly where the two pieces belong, and it's solid: half a bridge is part of its country's piece, so it rests on walls and other pieces, and dropping its partner onto it joins them.
 
 The rules limit how hard a map can be. With every piece above a fixed size, a map's area in the box caps how many pieces it can have, and the piece count is the main thing that decides how often a map is completed (below). A map meant to be hard needs a lot of land made of mid-sized regions that border each other widely, not a few big countries with small ones around them.
 
@@ -121,7 +122,7 @@ The two maps that came out of it show that how pieces connect matters too. Centr
 What it shows:
 
 - **The number of pieces matters more than fill.** South America alone was the fullest box here (0.41) and the easiest map. Adding eight small Central American pieces halved its completion rate, even though fill fell to 0.22.
-- **Small islands with one neighbor are hard.** Adding Cuba, Haiti, the Dominican Republic and Puerto Rico cost about as much as adding several land pieces. Not because of the water (pieces joined by a bridge join wherever they touch), but because each island was a small piece with a single neighbor to find.
+- **Small islands with one neighbor are hard.** Adding Cuba, Haiti, the Dominican Republic and Puerto Rico cost about as much as adding several land pieces. Not because of the water (pieces joined by a bridge join wherever they touch), but because each island was a small piece with a single neighbor to find. (Measured before bridges were solid.)
 - **A chain is harder than a web.** Fewer neighbors per piece, and pieces that join only one other, make a map harder at the same piece count.
 - **Pre-joining pieces is the finest tuning knob.** Each cluster removes drops and, for islands, crossings, without changing what the map shows.
 - **The box width did little here.** Within a fill of 0.21–0.22, widening the box made no difference beyond the games' luck.

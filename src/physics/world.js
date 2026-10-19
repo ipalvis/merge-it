@@ -1,7 +1,7 @@
 import Matter from 'matter-js';
 import { BOX, CFG, VH, VW } from '../config.js';
 import { onMerged } from '../game/game.js';
-import { STATES } from '../map/geometry.js';
+import { bridgeChunks, STATES } from '../map/geometry.js';
 import { G } from '../state.js';
 
 const { Bodies, Body, Composite, Engine, Events, Sleeping, Vertices } = Matter;
@@ -47,12 +47,14 @@ function roundCorners(c) {
   return Vertices.chamfer(v, radii, -1, 2, 5);
 }
 export function buildGroup(ids) {
-  const chunks = ids.flatMap(id => STATES[id].chunks);
+  // the states' own shapes, and their bridges across water (solid, so they don't pass through walls or other pieces)
+  const chunks = [...ids.flatMap(id => STATES[id].chunks), ...bridgeChunks(new Set(ids))];
   const pieces = [];
   for (const ch of chunks) {
     const verts = roundCorners(ch.verts);
     const p = Body.create({ position: Vertices.centre(verts), vertices: verts });
     p.stateId = ch.state;
+    p.bridge = !!ch.bridge;
     pieces.push(p);
   }
   const g = Body.create({
