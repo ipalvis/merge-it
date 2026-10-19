@@ -38,23 +38,46 @@ export function drawState(c, st, fill, lw, label) {
   c.fillText(st.id, L.ox * L.size, L.oy * L.size);
   c.restore();
 }
-/* Sea crossings for the states in ids (one piece, drawn in map space), drawn as a little bridge: a light band with a
-   dark outline. While the partner isn't joined, half a bridge sticks out from the coast toward it; once it is, the
-   bridge spans the water and rests a little way onto both coasts. */
+/* Sea crossings for the states in ids (one piece, drawn in map space), drawn as a little wooden bridge: a brown deck,
+   gently arched, with dark rails along its sides and planks across it. While the partner isn't joined, half a bridge
+   sticks out from the coast toward it; once it is, the bridge spans the water and rests a little way onto both
+   coasts. */
 export function drawCrossings(c, ids) {
+  const W = CFG.crossingWidth;
   const bridge = (x0, y0, x1, y1) => {
+    const len = Math.hypot(x1 - x0, y1 - y0) || 1,
+      bow = len * 0.12, // how far the middle bends to one side: a slight arch
+      cx = (x0 + x1) / 2 - ((y1 - y0) / len) * bow,
+      cy = (y0 + y1) / 2 + ((x1 - x0) / len) * bow;
     c.beginPath();
     c.moveTo(x0, y0);
-    c.lineTo(x1, y1);
-    c.lineWidth = CFG.crossingWidth + 2;
-    c.strokeStyle = theme.stroke;
+    c.quadraticCurveTo(cx, cy, x1, y1);
+    c.lineWidth = W + 1.4; // the rails show as the deck's dark edges
+    c.strokeStyle = theme['bridge-line'];
     c.stroke();
-    c.lineWidth = CFG.crossingWidth;
-    c.strokeStyle = theme.page;
+    c.lineWidth = W;
+    c.strokeStyle = theme.bridge;
+    c.stroke();
+    // planks across the deck, about every 2.2 px along it
+    const n = Math.max(2, Math.round(len / 2.2));
+    c.beginPath();
+    for (let i = 1; i < n; i++) {
+      const t = i / n,
+        u = 1 - t,
+        px = u * u * x0 + 2 * u * t * cx + t * t * x1,
+        py = u * u * y0 + 2 * u * t * cy + t * t * y1,
+        tx = 2 * u * (cx - x0) + 2 * t * (x1 - cx),
+        ty = 2 * u * (cy - y0) + 2 * t * (y1 - cy),
+        k = (W * 0.42) / (Math.hypot(tx, ty) || 1);
+      c.moveTo(px + ty * k, py - tx * k);
+      c.lineTo(px - ty * k, py + tx * k);
+    }
+    c.lineWidth = 0.45;
+    c.strokeStyle = theme['bridge-line'];
     c.stroke();
   };
   c.save();
-  c.lineCap = 'round';
+  c.lineCap = 'butt';
   for (const id of ids)
     for (const x of STATES[id].crossings) {
       const dx = x.at.x - x.from.x,

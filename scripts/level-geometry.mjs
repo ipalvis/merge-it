@@ -8,8 +8,7 @@ const CONFIG = readFileSync(new URL('../src/config.js', import.meta.url), 'utf8'
   setting = re => +CONFIG.match(re)[1],
   MAP_FILL = setting(/mapFill: ([\d.]+)/),
   MAP_MAX_H = setting(/mapMaxH: ([\d.]+)/),
-  STD_BOX_W = setting(/STD_BOX_W = (\d+)/),
-  CROSSING_WIDTH = setting(/crossingWidth: ([\d.]+)/); // a sea crossing's bridge
+  STD_BOX_W = setting(/STD_BOX_W = (\d+)/);
 export const mapScale = (level, data) => Math.min((MAP_FILL * (level.boxW ?? STD_BOX_W)) / data.w, MAP_MAX_H / data.h);
 
 const polyArea = pts => {
@@ -46,8 +45,9 @@ function along(a, b) {
 }
 
 /* Pieces as dealt: each cluster, then each region not in one. Returns [{ name, states, area }] (area in logical px²),
-   and the connections between pieces that can join: [{ a, b, width }] (width in logical px; a sea crossing counts
-   as the width of its bridge) */
+   and the connections between pieces that can join: [{ a, b, width, sea }] (width: how long a border they share, in
+   logical px; sea: joined by a bridge across water, which has no border to measure). Neighbors join wherever they
+   touch, not only along their border; the width is what a player sees, and so aims for. */
 export function measureLevel(level, data) {
   const S = mapScale(level, data),
     byId = Object.fromEntries(data.states.map(s => [s.id, s])),
@@ -60,19 +60,21 @@ export function measureLevel(level, data) {
     p.area = p.states.reduce((t, i) => t + byId[i].parts.reduce((u, q) => u + polyArea(q.outline), 0), 0) * S * S;
   const pieceOf = Object.fromEntries(pieces.flatMap(p => p.states.map(i => [i, p])));
   const sea = new Set((data.links ?? []).flatMap(l => [`${l.a}|${l.b}`, `${l.b}|${l.a}`]));
-  const widths = new Map(); // "pieceA|pieceB" -> width
+  const widths = new Map(); // "pieceA|pieceB" -> { width, sea }
   for (const s of data.states)
     for (const n of s.neighbors) {
       const A = pieceOf[s.id],
         B = pieceOf[n];
       if (!B || A === B || s.id > n) continue; // each region pair once
-      const w = sea.has(`${s.id}|${n}`) ? CROSSING_WIDTH : ((along(s, byId[n]) + along(byId[n], s)) / 2) * S;
-      const key = [A.name, B.name].sort().join('|');
-      widths.set(key, (widths.get(key) ?? 0) + w);
+      const key = [A.name, B.name].sort().join('|'),
+        w = widths.get(key) ?? { width: 0, sea: false };
+      if (sea.has(`${s.id}|${n}`)) w.sea = true;
+      else w.width += ((along(s, byId[n]) + along(byId[n], s)) / 2) * S;
+      widths.set(key, w);
     }
-  const links = [...widths].map(([k, width]) => {
+  const links = [...widths].map(([k, w]) => {
     const [a, b] = k.split('|');
-    return { a, b, width };
+    return { a, b, ...w };
   });
   return { scale: S, pieces, links };
 }

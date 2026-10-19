@@ -27,6 +27,8 @@
   --c4: #e8a57a;
   --c5: #b8b2a7;
   --c6: #e3aecb;
+  --bridge: #b07b45; /* bridges across water: the deck, and its rails and planks */
+  --bridge-line: #5e3d1e;
   color-scheme: light;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
@@ -55,6 +57,8 @@
   --c4: #cc7149;
   --c5: #868b90;
   --c6: #c77fb2;
+  --bridge: #b98a58;
+  --bridge-line: #3d2814;
   color-scheme: dark;
 }
 *,

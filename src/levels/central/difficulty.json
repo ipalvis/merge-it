@@ -3,52 +3,52 @@
   "label": "Easy",
   "range": [
     2,
-    3
+    2.5
   ],
   "stats": {
-    "pieces": 6,
-    "regions": 8,
-    "fill": 0.19,
-    "mapHeight": 0.92,
-    "solidity": 0.65,
-    "widestPiece": 0.78,
-    "medianPiece": 0.15,
-    "neighbors": 1.67,
+    "pieces": 11,
+    "regions": 11,
+    "fill": 0.16,
+    "mapHeight": 0.9,
+    "solidity": 0.64,
+    "widestPiece": 0.66,
+    "medianPiece": 0.1,
+    "neighbors": 2.18,
     "deadEnds": 2,
-    "seaLinks": 0,
-    "boxW": 532
+    "seaLinks": 2,
+    "boxW": 600
   },
   "sim": {
     "aiming": {
       "games": 128,
-      "wins": 40,
-      "winRate": 0.31,
-      "overflowRate": 0,
-      "stuckRate": 0.69,
-      "assembled": 0.78,
-      "assembledSE": 0.01,
-      "leftover": 1.69,
-      "joinOnLanding": 0.41,
-      "pressure": 0.38,
-      "shakes": 18.15,
-      "blends": 2.71,
-      "minutes": 0.81
+      "wins": 46,
+      "winRate": 0.36,
+      "overflowRate": 0.02,
+      "stuckRate": 0.63,
+      "assembled": 0.82,
+      "assembledSE": 0.02,
+      "leftover": 1.77,
+      "joinOnLanding": 0.47,
+      "pressure": 0.47,
+      "shakes": 19.63,
+      "blends": 2.59,
+      "minutes": 0.92
     },
     "random": {
       "games": 128,
-      "wins": 19,
-      "winRate": 0.15,
+      "wins": 7,
+      "winRate": 0.05,
       "overflowRate": 0.02,
-      "stuckRate": 0.84,
-      "assembled": 0.71,
-      "assembledSE": 0.01,
-      "leftover": 1.99,
+      "stuckRate": 0.93,
+      "assembled": 0.63,
+      "assembledSE": 0.02,
+      "leftover": 2.83,
       "joinOnLanding": 0.21,
-      "pressure": 0.41,
-      "shakes": 18.55,
-      "blends": 2.81,
-      "minutes": 0.8
+      "pressure": 0.51,
+      "shakes": 22.99,
+      "blends": 2.88,
+      "minutes": 1
     }
   },
-  "inputs": "2d5a81ca1f18"
+  "inputs": "a63d6533e60f"
 }

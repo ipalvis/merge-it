@@ -24,12 +24,11 @@ export default {
   ],
   /* Neighbors that ship pre-joined, so no piece is under the minimum size (scripts/check-levels.mjs) */
   clusters: [
-    { name:'The Guianas', states:['GY','SR','GF'] },
-    { name:'Argentina and Uruguay', states:['AR','UY'] }
+    { name:'Suriname and French Guiana', states:['SR','GF'] }
   ],
   /* Bonus points the first time each is assembled in a round */
   divisions: {
-    "the Southern Cone":["AR","CL","PY","UY"], "Gran Colombia":["CO","EC","VE"],
+    "the Guianas":["GY","SR","GF"], "the Southern Cone":["AR","CL","PY","UY"], "Gran Colombia":["CO","EC","VE"],
     "the Andean Community":["BO","CO","EC","PE"], "Mercosur's founders":["AR","BR","PY","UY"]
   },
   regions: {

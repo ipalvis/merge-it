@@ -19,15 +19,19 @@ const SONGS = [...read('../src/audio/sound.js').matchAll(/^ {4}(\w+): \{/gm)].ma
 // Regions the scripted tutorial uses (game/tutorial.js), so a level with `tutorial: true` must have them
 const TUTORIAL_IDS = ['CO', 'WY', 'UT', 'MT', 'AZ', 'NM'];
 /* Design rules, in the box's own units (logical px, the same in every level; see level-geometry.mjs). The two
-   original maps came first and keep their small pieces (Moldova, New Jersey) and narrow joins (Colorado-Oklahoma, the
-   Øresund Bridge); every new level has to follow them.
-   - Minimum piece size: every piece (a region, or a pre-joined cluster) at least this big as drawn. Smaller pieces
-     are too small to aim at reliably, or to show a code. It's Paraguay's size in the first Latin America map (579),
-     rounded down.
-   - Minimum connection width: the whole map must be completable using only connections at least this wide (a shared
-     border, or a sea crossing's bridge), so no piece depends on a sliver to join: half the width of a minimum-size
-     piece. Narrower borders can exist; the map just mustn't need them (Panama to Colombia was 9). */
-const MIN_PIECE_AREA = 570,
+   original maps came first and keep their pre-joined pieces, small pieces (Moldova, New Jersey) and narrow joins
+   (Colorado-Oklahoma); every new level has to follow them.
+   - Grouping: a map of GROUP_ABOVE regions or fewer is too short to pre-join any (clusters): every region is a piece.
+     A bigger one pre-joins pieces under the minimum size, and only those.
+   - Minimum piece size (maps of more than GROUP_ABOVE regions): every piece (a region, or a pre-joined cluster) at
+     least this big as drawn; smaller ones are too small to aim at reliably, or to show a code. It's Uruguay's size in
+     South America (435), rounded down.
+   - Minimum connection width: the whole map must be completable using only connections at least this wide, where a
+     connection is the border two pieces share, or a bridge across water. Neighbors join wherever they touch, but a
+     player aims for the border they can see, and a sliver looks unreachable: half the width of a minimum-size piece.
+     Narrower borders can exist; the map just mustn't need them (Panama to Colombia was 9). */
+const GROUP_ABOVE = 12,
+  MIN_PIECE_AREA = 430,
   MIN_CONNECTION = 12,
   RULES_EXEMPT = new Set(['us', 'eu']);
 
@@ -138,16 +142,27 @@ for (const key of keys) {
     if (p.length > 1) err.push(`cluster "${c.name}" doesn't hold together: ${p.map(x => x.join(',')).join(' | ')}`);
   }
 
-  // Design rules (see MIN_PIECE_AREA, MIN_CONNECTION): big enough pieces, completable through wide enough connections
+  // Design rules (see GROUP_ABOVE, MIN_PIECE_AREA, MIN_CONNECTION): pre-join only in big maps and only small pieces,
+  // and complete the map through wide enough connections
   if (!RULES_EXEMPT.has(key) && ids.length && !err.length) {
-    const { pieces, links } = measureLevel(L, D);
-    for (const p of pieces)
-      if (p.area < MIN_PIECE_AREA)
+    const { pieces, links } = measureLevel(L, D),
+      alone = Object.fromEntries(measureLevel({ ...L, clusters: [] }, D).pieces.map(p => [p.name, p.area])),
+      pct = a => `${Math.round((100 * a) / MIN_PIECE_AREA)}% of the minimum piece size`;
+    if (ids.length <= GROUP_ABOVE) {
+      if (L.clusters?.length)
         err.push(
-          `piece ${p.name} is ${Math.round((100 * p.area) / MIN_PIECE_AREA)}% of the minimum piece size: pre-join it with a neighbor (clusters)`,
+          `clusters: a map of ${GROUP_ABOVE} regions or fewer (this one has ${ids.length}) keeps every region its own piece`,
         );
+    } else {
+      for (const p of pieces)
+        if (p.area < MIN_PIECE_AREA)
+          err.push(`piece ${p.name} is ${pct(p.area)}: pre-join it with a neighbor (clusters)`);
+      for (const c of L.clusters ?? [])
+        if (c.states.every(i => alone[i] >= MIN_PIECE_AREA))
+          err.push(`cluster "${c.name}": every region in it is big enough alone, so don't pre-join them`);
+    }
     const wide = {};
-    for (const l of links.filter(l => l.width >= MIN_CONNECTION)) {
+    for (const l of links.filter(l => l.sea || l.width >= MIN_CONNECTION)) {
       (wide[l.a] ??= []).push(l.b);
       (wide[l.b] ??= []).push(l.a);
     }
@@ -158,6 +173,7 @@ for (const key of keys) {
     if (sides.length > 1) {
       const side = name => sides.findIndex(s => s.includes(name)),
         narrow = links.filter(l => side(l.a) !== side(l.b)).map(l => `${l.a}-${l.b} ${l.width.toFixed(1)}`);
+      // (a bridge across water always counts: it joins on any touch, and the bridge shows where)
       err.push(
         `only narrow connections (under ${MIN_CONNECTION}) join ${sides.map(s => s.join(',')).join(' | ')}: ${narrow.join(', ')}. ` +
           'Pre-join across one (clusters), or leave a side out',

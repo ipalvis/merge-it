@@ -4,12 +4,12 @@ Every level has a difficulty rating from 1 to 5, in half steps. It's stored in `
 
 ## Current ratings
 
-| Level           | Rating    | Could be | Map completed (careful player) | Fill | Map assembled, on average | Box overflowed |
-| --------------- | --------- | -------- | ------------------------------ | ---- | ------------------------- | -------------- |
-| U.S.            | 5 Expert  | 4.5–5    | 0 of 32 games                  | 0.52 | 34%                       | 28% of games   |
-| Europe          | 4.5 Hard  | 4–4.5    | 0 of 32 games                  | 0.33 | 60%                       | never          |
-| Central America | 2.5 Easy  | 2–3      | 40 of 128 games (31%)          | 0.19 | 78%                       | never          |
-| South America   | 1 Relaxed | 1–1.5    | 91 of 128 games (71%)          | 0.41 | 91%                       | never          |
+| Level           | Rating      | Could be | Map completed (careful player) | Fill | Map assembled, on average | Box overflowed |
+| --------------- | ----------- | -------- | ------------------------------ | ---- | ------------------------- | -------------- |
+| U.S.            | 5 Expert    | 4.5–5    | 0 of 32 games                  | 0.52 | 34%                       | 28% of games   |
+| Europe          | 4.5 Hard    | 4–4.5    | 0 of 32 games                  | 0.33 | 60%                       | never          |
+| Central America | 2.5 Easy    | 2–2.5    | 46 of 128 games (36%)          | 0.16 | 82%                       | 2% of games    |
+| South America   | 1.5 Relaxed | 1–1.5    | 86 of 128 games (67%)          | 0.41 | 92%                       | never          |
 
 "Could be" is the range the rating would take at either end of the win rate's 95% interval: how far the luck of the games could move it. "Fill" is defined below.
 
@@ -88,10 +88,13 @@ Most unfinished games end with a few separate pieces lying apart in the pile, no
 
 ### Design rules
 
-Two rules make sure every piece can be dropped and joined reliably. Both are measured as drawn in the box, in the box's own units, the same in every level. `check-levels` enforces them and says what to change. The U.S. and Europe predate them and are exempt, to keep them as they are; every new level has to follow them.
+Three rules make sure every piece can be dropped and joined reliably. Sizes are measured as drawn in the box, in the box's own units, the same in every level. `check-levels` enforces them and says what to change. The U.S. and Europe predate them and are exempt, to keep them as they are; every new level has to follow them.
 
-- **Minimum piece size.** Every piece (a region, or a pre-joined cluster) must be at least as big as Paraguay was in the first Latin America map: 570 square units. Smaller pieces are too small to aim at reliably, or to show a code. Pre-join a small one with a neighbor in `clusters`.
-- **Minimum connection width.** The whole map must be completable using only connections at least 12 units wide (half the width of a minimum-size piece), where a connection is the border two pieces share. A sea crossing counts as its bridge's width, 4.5. A narrow border can exist, as long as the map doesn't need it: Chile–Peru in South America is 9 wide, but Chile also joins Bolivia and Argentina along wide borders. When the map does need one, pre-join across it, or leave a side out.
+- **Grouping.** A map of 12 regions or fewer pre-joins nothing: every region is its own piece, small or not, because a short map needs all the pieces it has. A bigger map pre-joins the pieces under the minimum size, and only those.
+- **Minimum piece size** (maps of more than 12 regions). Every piece (a region, or a pre-joined cluster) must be at least as big as Uruguay is in South America: 430 square units. Smaller pieces are too small to aim at reliably, or to show a code. Pre-join a small one with a neighbor in `clusters`.
+- **Minimum connection width.** The whole map must be completable using only connections at least 12 units wide (half the width of a minimum-size piece), where a connection is the border two pieces share, or a bridge across water. A narrow border can exist, as long as the map doesn't need it: Chile–Peru in South America is 9 wide, but Chile also joins Bolivia and Argentina along wide borders. When the map does need one, pre-join across it, or leave a side out.
+
+How joining works matters here. Two neighbors join wherever they touch, not only along their shared border, and a bridge isn't solid: pieces joined by one join wherever they touch too. The width rule is about what players see. They aim for the border, and a sliver like Panama's looks unreachable. A bridge counts because it shows exactly where the two pieces belong.
 
 The rules limit how hard a map can be. With every piece above a fixed size, a map's area in the box caps how many pieces it can have, and the piece count is the main thing that decides how often a map is completed (below). A map meant to be hard needs a lot of land made of mid-sized regions that border each other widely, not a few big countries with small ones around them.
 
@@ -113,12 +116,12 @@ The first Latin America map (Mexico to Patagonia) was built to rate 3, completed
 
 The 20-piece version had ten pieces under the minimum size: the seven Central American countries, the islands, Uruguay and Ecuador. Pre-joining them left 11 pieces, and still a poor map: Central America, now one small piece, joined South America only through Panama's 9-wide border with Colombia. That's what the minimum connection width rule came from. The map became two, South America and Central America, each at its own scale, so their countries are bigger in the box and fewer need pre-joining (see Current ratings).
 
-The two maps that came out of it show that how pieces connect matters too. Central America has only 6 pieces, but they form one chain from Mexico to Panama: each joins 1.7 others on average, and the two ends join only one. One missed join anywhere along the chain leaves the map unfinished, so it completes 31% of games. South America has 10 pieces that each join 3.8 others, and completes 71%.
+The two maps that came out of it show that how pieces connect matters too. Central America (11 pieces: Mexico through Panama, plus Cuba, Haiti and the Dominican Republic) is mostly one chain, Panama at one end and the Dominican Republic at the other: each piece joins 2.2 others on average. One missed join anywhere along the chain leaves the map unfinished, so it completes 36% of games. South America has 12 pieces that each join 3.8 others, and completes 67%. (An earlier 6-piece Central America, with small countries pre-joined and no islands, completed 31%: the chain, not the piece count, is what makes it harder.)
 
 What it shows:
 
 - **The number of pieces matters more than fill.** South America alone was the fullest box here (0.41) and the easiest map. Adding eight small Central American pieces halved its completion rate, even though fill fell to 0.22.
-- **Sea crossings are hard.** A piece that joins only across water has to land with its bridge end on the right coast, a small target. One crossing cost about as much as adding several land pieces.
+- **Small islands with one neighbor are hard.** Adding Cuba, Haiti, the Dominican Republic and Puerto Rico cost about as much as adding several land pieces. Not because of the water (pieces joined by a bridge join wherever they touch), but because each island was a small piece with a single neighbor to find.
 - **A chain is harder than a web.** Fewer neighbors per piece, and pieces that join only one other, make a map harder at the same piece count.
 - **Pre-joining pieces is the finest tuning knob.** Each cluster removes drops and, for islands, crossings, without changing what the map shows.
 - **The box width did little here.** Within a fill of 0.21–0.22, widening the box made no difference beyond the games' luck.

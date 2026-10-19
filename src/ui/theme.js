@@ -25,6 +25,8 @@ function readTheme() {
     'c4',
     'c5',
     'c6',
+    'bridge',
+    'bridge-line',
   ])
     theme[k] = cs.getPropertyValue('--' + k).trim();
 }
